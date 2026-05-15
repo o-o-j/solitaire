@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일본어 솔리테어 - 올 그린 에디션</title>
+    <style>
+        :root { 
+            --bg: #89d358;           /* 메인 배경색 */
+            --energy-bg: #d1efbd;    /* 라이프 바 배경색 */
+            --card: #ffffff; 
+            --accent: #f1c40f; 
+            --green: #2ecc71; 
+            --red: #ff4757; 
+            --gold: #ffd700; 
+            --combo: #ffffff; 
+        }
+
+        body { 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 10px; 
+            font-family: 'Hiragino Kaku Gothic Pro', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            user-select: none; 
+            color: #333; 
+            overflow-x: hidden; 
+        }
+        
+        /* 로그인 및 게임종료 오버레이 배경색 수정 */
+        .overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: var(--bg); /* 배경색을 일치시킴 */
+            z-index: 1500; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        .pop-box { 
+            background: white; 
+            padding: 45px; 
+            border-radius: 35px; 
+            text-align: center; 
+            width: 400px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1); /* 너무 어둡지 않게 그림자 조절 */
+        }
+
+        /* UI 레이아웃 */
+        .header { width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; margin: 15px 0 25px 0; gap: 10px; position: relative; }
+        .score-display { color: white; font-size: 2.8rem; font-weight: 900; text-shadow: 3px 3px 6px rgba(0,0,0,0.1); }
+        
+        .energy-container { 
+            width: 320px; 
+            height: 22px; 
+            background: var(--energy-bg); 
+            border-radius: 11px; 
+            border: 3px solid white; 
+            overflow: hidden; 
+        }
+        #energy-fill { 
+            width: 100%; 
+            height: 100%; 
+            background: var(--green); 
+            transition: width 0.4s ease; 
+        }
+
+        #combo-text { 
+            position: absolute; 
+            right: -100px; 
+            top: 10px; 
+            color: #ff4757; 
+            font-size: 2.2rem; 
+            font-weight: 900; 
+            opacity: 0; 
+            text-shadow: 2px 2px 0px white; 
+        }
+        #combo-text.pop { opacity: 1; transform: scale(1.2) rotate(12deg); }
+
+        /* 카드 및 슬롯 스타일 유지 */
+        .target-area { display: flex; gap: 15px; margin-bottom: 60px; flex-wrap: wrap; justify-content: center; min-height: 160px; max-width: 950px; }
+        .target-slot { width: 115px; height: 155px; background: rgba(255,255,255,0.3); border: 2.5px dashed white; border-radius: 20px; position: relative; }
+        .slot-label { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 4px 12px; border-radius: 10px; font-size: 0.85rem; font-weight: bold; border: 2px solid white; z-index: 5; }
+        .slot-count { position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%); color: white; font-size: 0.9rem; font-weight: bold; }
+
+        .tableau { display: flex; gap: 12px; justify-content: center; width: 100%; max-width: 1150px; min-height: 500px; }
+        .column { width: 110px; position: relative; }
+        .card { width: 105px; height: 140px; background: white; border-radius: 15px; position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab; border: 1px solid #eee; transition: top 0.4s; z-index: 10; }
+        .j-txt { font-size: 1.1rem; font-weight: bold; color: #2d3436; }
+        .r-txt { font-size: 0.8rem; color: #636e72; }
+        
+        .target-slot .card { position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) scale(0.95); border: 3px solid var(--gold); cursor: default; }
+        .card-emoji { font-size: 2.8rem; }
+        .card-mean { font-size: 0.9rem; font-weight: bold; color: #2ecc71; margin-top: 8px; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+        .shake-no { animation: shake 0.4s; border: 2.5px solid var(--red) !important; color: var(--red); z-index: 100 !important; }
+
+        button { background: #2ecc71; color: white; border: none; padding: 18px; border-radius: 18px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.2rem; margin-top: 20px; transition: 0.2s; }
+        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px 40px; border-radius: 50px; opacity: 0; z-index: 2000; pointer-events: none; }
+        #toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div id="login-overlay" class="overlay">
+        <div class="pop-box">
+            <h1 style="margin-bottom: 10px; color: #2d3436;">일본어 솔리테어</h1>
+            <p style="line-height: 1.7; color: #636e72; margin-bottom: 30px;">
+                "천천히 해도 괜찮아요.<br>
+                오늘의 노력이 내일의 실력이 될 거예요!"
+            </p>
+            <input type="text" id="nick" placeholder="닉네임 입력" style="width:90%; padding:16px; font-size:1.1rem; border-radius:15px; border:2px solid #dfe6e9; text-align:center; outline: none; margin-bottom: 15px;">
+            <button onclick="startGame()">학습 시작하기</button>
+        </div>
+    </div>
+
+    <div id="gameover-overlay" class="overlay" style="display:none;">
+        <div class="pop-box">
+            <h2 style="color:#e17055; font-size: 2rem;">참 잘했어요!</h2>
+            <p><span id="end-nick" style="font-weight:bold;"></span>님, 수고하셨습니다!</p>
+            <h1 id="final-score-val" style="font-size:3.5rem; margin:15px 0;">0</h1>
+            <button onclick="location.reload()">다시 도전하기</button>
+        </div>
+    </div>
+
+    <div id="toast">메시지</div>
+
+    <div class="header">
+        <div id="score" class="score-display">0</div>
+        <div id="combo-text">0 COMBO!</div>
+        <div class="energy-container"><div id="energy-fill"></div></div>
+    </div>
+
+    <div id="target-area" class="target-area"></div>
+    <div id="tableau" class="tableau"></div>
+
+<script>
+/** 데이터베이스 및 로직 (수정 완료 버전 유지) */
+const MASTER_DB = {
+    "과일": [{j:"りんご",r:"ringo",m:"사과",i:"🍎"},{j:"みかん",r:"mikan",m:"귤",i:"🍊"},{j:"ぶどう",r:"budou",m:"포도",i:"🍇"},{j:"すいか",r:"suika",m:"수박",i:"🍉"},{j:"もも",r:"momo",m:"복숭아",i:"🍑"},{j:"いちご",r:"ichigo",m:"딸기",i:"🍓"},{j:"ばなな",r:"banana",m:"바나나",i:"🍌"},{j:"めろん",r:"meron",m:"멜론",i:"🍈"},{j:"なし",r:"nashi",m:"배",i:"🍐"},{j:"かき",r:"kaki",m:"감",i:"🍅"},{j:"くり",r:"kuri",m:"밤",i:"🌰"},{j:"れもん",r:"remon",m:"레몬",i:"🍋"},{j:"さくらんぼ",r:"sakuranbo",m:"체리",i:"🍒"},{j:"ゆず",r:"yuzu",m:"유자",i:"🍊"},{j:"ぱい나っぷる",r:"painappuru",m:"파인애플",i:"🍍"}],
+    "동물": [{j:"いぬ",r:"inu",m:"강아지",i:"🐶"},{j:"ねこ",r:"neko",m:"고양이",i:"🐱"},{j:"うま",r:"uma",m:"말",i:"🐴"},{j:"うし",r:"ushi",m:"소",i:"🐮"},{j:"さる",r:"saru",m:"원숭이",i:"🐒"},{j:"とら",r:"tora",m:"호랑이",i:"🐯"},{j:"ぞう",r:"zou",m:"코끼리",i:"🐘"},{j:"きりん",r:"kirin",m:"기린",i:"🦒"},{j:"うさぎ",r:"usagi",m:"토끼",i:"🐰"},{j:"ぱんだ",r:"panda",m:"판다",i:"🐼"},{j:"ぶた",r:"buta",m:"돼지",i:"🐷"},{j:"へび",r:"hebi",m:"뱀",i:"🐍"},{j:"わに",r:"wani",m:"악어",i:"🐊"},{j:"ひつじ",r:"hitsuji",m:"양",i:"🐑"},{j:"くま",r:"kuma",m:"곰",i:"🐻"}],
+    "교통": [{j:"くるま",r:"kuruma",m:"자동차",i:"🚗"},{j:"でんしゃ",r:"densha",m:"전철",i:"🚆"},{j:"ばす",r:"basu",m:"버스",i:"🚌"},{j:"ひこうき",r:"hikouki",m:"비행기",i:"✈️"},{j:"たくしー",r:"takushii",m:"택시",i:"🚕"},{j:"ふね",r:"fune",m:"배",i:"🚢"},{j:"じてんしゃ",r:"jitensha",m:"자전거",i:"🚲"},{j:"とらっく",r:"torakku",m:"트럭",i:"🚚"},{j:"ちかてつ",r:"chikatetsu",m:"지하철",i:"🚇"},{j:"しんかんせん",r:"shinkansen",m:"신칸센",i:"🚄"},{j:"ばいく",r:"baiku",m:"오토바이",i:"🏍️"},{j:"へりこぷたー",r:"herikoputaa",m:"헬리콥터",i:"🚁"},{j:"ろけっと",r:"roketto",m:"로켓",i:"🚀"},{j:"きゅうきゅうしゃ",r:"kyuukyuusha",m:"구급차",i:"🚑"},{j:"よっと",r:"yotto",m:"요트",i:"⛵"}],
+    "신체": [{j:"あたま",r:"atama",m:"머리",i:"🧠"},{j:"め",r:"me",m:"눈",i:"👀"},{j:"みみ",r:"mimi",m:"귀",i:"👂"},{j:"はな",r:"hana",m:"코",i:"👃"},{j:"くち",r:"kuchi",m:"입",i:"👄"},{j:"て",r:"te",m:"손",i:"🖐️"},{j:"あし",r:"ashi",m:"발/다리",i:"🦶"},{j:"かお",r:"kao",m:"얼굴",i:"😊"},{j:"かた",r:"kata",m:"어깨",i:"💪"},{j:"유び",r:"yubi",m:"손가락",i:"☝️"},{j:"おなか",r:"onaka",m:"배",i:"🤰"},{j:"せなか",r:"senaka",m:"등",i:"🤺"},{j:"くび",r:"kubi",m:"목",i:"🧣"},{j:"ひざ",r:"hiza",m:"무릎",i:"🦵"},{j:"ひじ",r:"hiji",m:"팔꿈치",i:"💪"}],
+    "채소": [{j:"にんじん",r:"ninjin",m:"당근",i:"🥕"},{j:"たまねぎ",r:"tamanegi",m:"양파",i:"🧅"},{j:"とまと",r:"tomato",m:"토마토",i:"🍅"},{j:"きゅうり",r:"kyuuri",m:"오이",i:"🥒"},{j:"じゃがいも",r:"jagaimo",m:"감자",i:"🥔"},{j:"なす",r:"nasu",m:"가지",i:"🍆"},{j:"ぴーまん",r:"piiman",m:"피망",i:"🫑"},{j:"だいこん",r:"daikon",m:"무",i:"🥗"},{j:"きゃべつ",r:"kyabetsu",m:"양배추",i:"🥬"},{j:"きのこ",r:"kinoko",m:"버섯",i:"🍄"},{j:"とうもろこし",r:"toumorokoshi",m:"옥수수",i:"🌽"},{j:"にんにく",r:"ninniku",m:"마늘",i:"🧄"},{j:"れんこん",r:"renkon",m:"연근",i:"🍱"},{j:"ぱぷりか",r:"papurika",m:"파프리카",i:"🫑"},{j:"ぶろっこ리ー",r:"burokkorii",m:"브로콜리",i:"🥦"}],
+    "날씨": [{j:"はれ",r:"hare",m:"맑음",i:"☀️"},{j:"あ메",r:"ame",m:"비",i:"☔"},{j:"ゆき",r:"yuki",m:"눈",i:"❄️"},{j:"くもり",r:"kumori",m:"흐림",i:"☁️"},{j:"かぜ",r:"kaze",m:"바람",i:"🌬️"},{j:"かみなり",r:"kaminari",m:"번개",i:"⚡"},{j:"にじ",r:"niji",m:"무지개",i:"🌈"},{j:"きり",r:"kiri",m:"안개",i:"🌫️"},{j:"あらし",r:"arashi",m:"폭풍",i:"🌪️"},{j:"たいふう",r:"taifuu",m:"태풍",i:"🌀"},{j:"つゆ",r:"tsuyu",m:"장마",i:"💧"},{j:"ゆうだち",r:"yuudachi",m:"소나기",i:"🌦️"},{j:"もや",r:"moya",m:"안개",i:"🌫️"},{j:"しも",r:"shimo",m:"서리",i:"❄️"},{j:"ひかり",r:"hikari",m:"빛",i:"✨"}],
+    "가족": [{j:"おかあさん",r:"okaasan",m:"어머니",i:"👩"},{j:"おとうさん",r:"otousan",m:"아버지",i:"👨"},{j:"あに",r:"ani",m:"형/오빠",i:"👦"},{j:"あね",r:"ane",m:"누나/언니",i:"👧"},{j:"おとうと",r:"otouto",m:"남동생",i:"👶"},{j:"いもうと",r:"imouto",m:"여동생",i:"👧"},{j:"おじいさん",r:"ojiisan",m:"할아버지",i:"👴"},{j:"おばあさん",r:"obaasan",m:"할머니",i:"👵"},{j:"むすこ",r:"musuko",m:"아들",i:"👦"},{j:"むすめ",r:"musume",m:"딸",i:"👧"},{j:"おじ",r:"oji",m:"삼촌",i:"🤵"},{j:"おば",r:"oba",m:"고모/이모",i:"👩‍💼"},{j:"마고",r:"mago",m:"손주",i:"🧒"},{j:"かぞく",r:"kazoku",m:"가족",i:"🏠"},{j:"ふうふ",r:"fuufu",m:"부부",i:"👫"}],
+    "색상": [{j:"あか",r:"aka",m:"빨강",i:"🔴"},{j:"あお",r:"ao",m:"파랑",i:"🔵"},{j:"きいろ",r:"kiiro",m:"노랑",i:"🟡"},{j:"くろ",r:"kuro",m:"검정",i:"⚫"},{j:"しろ",r:"shiro",m:"하양",i:"⚪"},{j:"みどり",r:"midori",m:"초록",i:"🟢"},{j:"ちゃいろ",r:"chairo",m:"갈색",i:"🟤"},{j:"ももいろ",r:"momoiro",m:"분홍",i:"🌸"},{j:"おれんじ",r:"orenji",m:"주황",i:"🟠"},{j:"むらさき",r:"murasaki",m:"보라",i:"🟣"},{j:"はいいろ",r:"haiiro",m:"회색",i:"🔘"},{j:"きんいろ",r:"kiniro",m:"금색",i:"✨"},{j:"ぎんいろ",r:"giniro",m:"은색",i:"🥈"},{j:"みずいろ",r:"mizuiro",m:"하늘색",i:"💎"},{j:"こんいろ",r:"kon'iro",m:"남색",i:"🌌"}],
+    "숫자": [{j:"いち",r:"ichi",m:"1",i:"1️⃣"},{j:"に",r:"ni",m:"2",i:"2️⃣"},{j:"さん",r:"san",m:"3",i:"3️⃣"},{j:"よん",r:"yon",m:"4",i:"4️⃣"},{j:"ご",r:"go",m:"5",i:"5️⃣"},{j:"ろく",r:"roku",m:"6",i:"6️⃣"},{j:"なな",r:"nana",m:"7",i:"7️⃣"},{j:"はち",r:"hachi",m:"8",i:"8️⃣"},{j:"きゅう",r:"kyuu",m:"9",i:"9️⃣"},{j:"じゅう",r:"juu",m:"10",i:"🔟"},{j:"ぜろ",r:"zero",m:"0",i:"0️⃣"},{j:"ひゃく",r:"hyaku",m:"100",i:"💯"},{j:"せん",r:"sen",m:"1,000",i:"🔢"},{j:"まん",r:"man",m:"10,000",i:"💰"},{j:"おく",r:"oku",m:"1억",i:"💎"}],
+    "학용품": [{j:"えんぴつ",r:"enpitsu",m:"연필",i:"✏️"},{j:"のーと",r:"nooto",m:"공책",i:"📓"},{j:"はさみ",r:"hasami",m:"가위",i:"✂️"},{j:"けしごむ",r:"keshigomu",m:"지우개",i:"🧼"},{j:"じょうぎ",r:"jougi",m:"자",i:"📏"},{j:"ぺん",r:"pen",m:"펜",i:"🖋️"},{j:"かばん",r:"kaban",m:"가방",i:"🎒"},{j:"ふでばこ",r:"fudebako",m:"필통",i:"✏️"},{j:"じしょ",r:"jisho",m:"사전",i:"📕"},{j:"ものさし",r:"monosashi",m:"척도",i:"📏"},{j:"ほちきす",r:"hochikisu",m:"스테이플러",i:"🖇️"},{j:"くりっぷ",r:"kurippu",m:"클립",i:"📎"},{j:"がむてーぷ",r:"gamuteipu",m:"테이프",i:"🎞️"},{j:"すなっぷ",r:"sunappu",m:"스냅",i:"📸"},{j:"のり",r:"nori",m:"풀",i:"🍶"}]
+};
+
+let energy = 100, score = 0, totals = {}, current = {}, nickname = "";
+let combo = 0;
+let cardOrigins = {};
+
+function playSound(text) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP';
+    utterance.rate = 1.0;
+    window.speechSynthesis.speak(utterance);
+}
+
+function startGame() {
+    nickname = document.getElementById('nick').value.trim();
+    if(!nickname) { alert("닉네임을 입력해 주세요! 😊"); return; }
+    document.getElementById('login-overlay').style.display = 'none';
+    initStage();
+}
+
+function initStage() {
+    const tArea = document.getElementById('target-area');
+    const tab = document.getElementById('tableau');
+    tArea.innerHTML = ''; tab.innerHTML = '';
+    let cards = []; totals = {}; current = {}; cardOrigins = {};
+
+    const allThemes = Object.keys(MASTER_DB);
+    let selectedThemes = [...allThemes].sort(() => Math.random() - 0.5).slice(0, 3);
+
+    selectedThemes.forEach(cat => {
+        const randomCount = Math.floor(Math.random() * (15 - 5 + 1)) + 5;
+        let pool = [...MASTER_DB[cat]].sort(() => Math.random() - 0.5);
+        let chosen = pool.slice(0, Math.min(randomCount, pool.length));
+
+        current[cat] = 0; totals[cat] = chosen.length;
+        const slot = document.createElement('div');
+        slot.className = 'target-slot'; slot.dataset.cat = cat;
+        slot.innerHTML = `<div class="slot-label">${cat}</div><div class="slot-count" id="c-${cat}">0 / ${totals[cat]}</div>`;
+        tArea.appendChild(slot);
+        
+        chosen.forEach(c => cards.push({...c, cat: cat}));
+    });
+
+    cards.sort(() => Math.random() - 0.5);
+    const colCount = 7;
+    for(let i=0; i<colCount; i++) {
+        const col = document.createElement('div'); col.className = 'column'; col.id = `col-${i}`;
+        tab.appendChild(col);
+    }
+
+    cards.forEach((d, idx) => {
+        const c = document.createElement('div');
+        const cid = `card-${idx}`;
+        c.className = 'card'; c.draggable = true; c.id = cid;
+        c.dataset.info = JSON.stringify(d);
+        c.innerHTML = `<div class="j-txt">${d.j}</div><div class="r-txt">${d.r}</div>`;
+        const colId = `col-${idx % colCount}`;
+        const topPos = Math.floor(idx / colCount) * 40;
+        c.style.top = topPos + "px";
+        cardOrigins[cid] = { parent: colId, top: topPos };
+
+        c.onclick = () => playSound(d.j);
+        c.ondragstart = (e) => { 
+            e.dataTransfer.setData("text", e.target.id); 
+            setTimeout(() => { e.target.style.visibility = "hidden"; }, 0); 
+        };
+        c.ondragend = (e) => { e.target.style.visibility = "visible"; };
+        document.getElementById(colId).appendChild(c);
+    });
+
+    document.querySelectorAll('.target-slot').forEach(s => {
+        s.ondragover = (e) => e.preventDefault();
+        s.ondrop = handleDrop;
+    });
+    updateUI();
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const slot = e.currentTarget;
+    const cid = e.dataTransfer.getData("text");
+    const card = document.getElementById(cid);
+    if(!card) return;
+    const data = JSON.parse(card.dataset.info);
+
+    if (data.cat === slot.dataset.cat) {
+        playSound(data.j);
+        combo++; 
+        score += (100 + combo * 10);
+        if(combo % 5 === 0) energy = Math.min(100, energy + 5);
+        showComboEffect(); 
+        current[data.cat]++;
+        
+        card.draggable = false;
+        slot.appendChild(card);
+        card.innerHTML = `<div class="card-emoji">${data.i}</div><div class="card-mean">${data.m}</div>`;
+        card.style.top = "50%";
+        card.style.visibility = "visible";
+        
+        if (Object.keys(totals).every(k => current[k] >= totals[k])) {
+            setTimeout(() => { energy = Math.min(100, energy + 20); initStage(); }, 800);
+        }
+    } else {
+        combo = 0; energy -= 10;
+        showToast("오답입니다! 💡");
+        card.classList.add('shake-no');
+        card.style.visibility = "visible";
+        setTimeout(() => {
+            card.classList.remove('shake-no');
+            const origin = cardOrigins[cid];
+            document.getElementById(origin.parent).appendChild(card);
+            card.style.top = origin.top + "px";
+        }, 400);
+    }
+    updateUI();
+}
+
+function showComboEffect() {
+    const ct = document.getElementById('combo-text');
+    if(combo > 1) {
+        ct.innerText = `${combo} COMBO!`;
+        ct.classList.remove('pop');
+        void ct.offsetWidth; 
+        ct.classList.add('pop');
+    } else {
+        ct.classList.remove('pop');
+    }
+}
+
+function updateUI() {
+    document.getElementById('score').innerText = score.toLocaleString();
+    const fill = document.getElementById('energy-fill');
+    fill.style.width = Math.max(0, energy) + "%";
+    fill.style.backgroundColor = energy < 35 ? "var(--red)" : "#2ecc71";
+    for(let k in totals) {
+        const el = document.getElementById(`c-${k}`);
+        if(el) el.innerText = `${current[k]} / ${totals[k]}`;
+    }
+    if(energy <= 0) {
+        document.getElementById('end-nick').innerText = nickname;
+        document.getElementById('final-score-val').innerText = score.toLocaleString();
+        document.getElementById('gameover-overlay').style.display = 'flex';
+    }
+}
+
+function showToast(m) {
+    const t = document.getElementById('toast');
+    t.innerHTML = m; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1500);
+}
+</script>
+</body>
+</html>
