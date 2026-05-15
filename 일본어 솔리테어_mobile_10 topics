@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>일본어 솔리테어_mobile_10 topics.ver</title>
+    <style>
+        :root { 
+            --bg: #89d358;           
+            --energy-bg: #d1efbd;    
+            --card: #ffffff; 
+            --accent: #f1c40f; 
+            --green: #2ecc71; 
+            --red: #ff4757; 
+            --gold: #ffd700; 
+            --selected: #3498db; 
+        }
+
+        body { 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 10px; 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            user-select: none; 
+            touch-action: manipulation; 
+            color: #333; 
+        }
+        
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1500; display: flex; align-items: center; justify-content: center; }
+        .pop-box { background: white; padding: 25px; border-radius: 25px; text-align: center; width: 85%; max-width: 350px; box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+        
+        .header { width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; gap: 5px; }
+        .score-display { color: white; font-size: 2rem; font-weight: 900; }
+        
+        .energy-container { width: 220px; height: 12px; background: var(--energy-bg); border-radius: 10px; border: 2px solid white; overflow: hidden; }
+        #energy-fill { width: 100%; height: 100%; background: var(--green); transition: width 0.4s ease; }
+
+        /* 슬롯 영역: 여러 줄로 예쁘게 정렬 */
+        .target-area { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 800px; }
+        .target-slot { width: 85px; height: 110px; background: rgba(255,255,255,0.3); border: 2px dashed white; border-radius: 12px; position: relative; flex-shrink: 0; }
+        .slot-label { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 2px 6px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; z-index: 5; white-space: nowrap; }
+        .slot-count { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); color: white; font-size: 0.7rem; font-weight: bold; }
+
+        /* 카드 배치 영역 */
+        .tableau { display: flex; gap: 8px; justify-content: center; width: 100%; max-width: 600px; min-height: 400px; margin-top: 15px; }
+        .column { width: 18%; position: relative; }
+        
+        .card { 
+            width: 55px; height: 80px; background: white; border-radius: 8px; 
+            position: absolute; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1); border: 1px solid #eee; 
+            transition: transform 0.1s; z-index: 10;
+        }
+        
+        .card.selected { border: 3px solid var(--selected) !important; transform: translateY(-5px) scale(1.05); z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        .j-txt { font-size: 0.8rem; font-weight: bold; pointer-events: none; text-align: center; }
+        .r-txt { font-size: 0.6rem; color: #636e72; pointer-events: none; text-align: center; }
+        
+        .target-slot .card { position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) scale(0.9) !important; border: 2px solid var(--gold); }
+        .card-emoji { font-size: 1.8rem; pointer-events: none; }
+        .card-mean { font-size: 0.7rem; font-weight: bold; color: #2ecc71; margin-top: 2px; pointer-events: none; }
+
+        button { background: #2ecc71; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 1.1rem; margin-top: 10px; }
+        #toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; z-index: 2000; transition: 0.3s; pointer-events: none; }
+        #toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div id="login-overlay" class="overlay">
+        <div class="pop-box">
+            <h2>일본어 솔리테어</h2>
+            <p style="font-size: 0.9rem; color: #636e72;">카드를 터치한 후,<br>정답 슬롯을 터치하세요!</p>
+            <input type="text" id="nick" placeholder="닉네임" style="width:80%; padding:10px; border-radius:8px; border:1px solid #ddd; text-align:center; margin-bottom:12px;">
+            <button onclick="startGame()">시작하기</button>
+        </div>
+    </div>
+
+    <div id="gameover-overlay" class="overlay" style="display:none;">
+        <div class="pop-box">
+            <h2>게임 종료!</h2>
+            <h1 id="final-score-val">0</h1>
+            <button onclick="location.reload()">다시 도전</button>
+        </div>
+    </div>
+
+    <div id="toast">메시지</div>
+
+    <div class="header">
+        <div id="score" class="score-display">0</div>
+        <div class="energy-container"><div id="energy-fill"></div></div>
+    </div>
+
+    <div id="target-area" class="target-area"></div>
+    <div id="tableau" class="tableau"></div>
+
+<script>
+const MASTER_DB = {
+    "과일": [{j:"りんご",r:"ringo",m:"사과",i:"🍎"},{j:"みかん",r:"mikan",m:"귤",i:"🍊"},{j:"ぶどう",r:"budou",m:"포도",i:"🍇"},{j:"すいか",r:"suika",m:"수박",i:"🍉"},{j:"もも",r:"momo",m:"복숭아",i:"🍑"}],
+    "동물": [{j:"いぬ",r:"inu",m:"강아지",i:"🐶"},{j:"ねこ",r:"neko",m:"고양이",i:"🐱"},{j:"うま",r:"uma",m:"말",i:"🐴"},{j:"うし",r:"ushi",m:"소",i:"🐮"},{j:"うさぎ",r:"usagi",m:"토끼",i:"🐰"}],
+    "야채": [{j:"にんじん",r:"ninjin",m:"당근",i:"🥕"},{j:"たまねぎ",r:"tamanegi",m:"양파",i:"🧅"},{j:"じゃがいも",r:"jagaimo",m:"감자",i:"🥔"},{j:"なす",r:"nasu",m:"가지",i:"🍆"},{j:"きゅうり",r:"kyuuri",m:"오이",i:"🥒"}],
+    "색상": [{j:"あか",r:"aka",m:"빨강",i:"🔴"},{j:"あお",r:"ao",m:"파랑",i:"🔵"},{j:"きいろ",r:"kiiro",m:"노랑",i:"🟡"},{j:"くろ",r:"kuro",m:"검정",i:"⚫"},{j:"しろ",r:"shiro",m:"하양",i:"⚪"}],
+    "탈것": [{j:"くるま",r:"kuruma",m:"자동차",i:"🚗"},{j:"でんしゃ",r:"densha",m:"기차",i:"🚃"},{j:"ひこうき",r:"hikouki",m:"비행기",i:"✈️"},{j:"ふね",r:"fune",m:"배",i:"🚢"},{j:"じてんしゃ",r:"jitensha",m:"자전거",i:"🚲"}],
+    "음식": [{j:"すし",r:"sushi",m:"초밥",i:"🍣"},{j:"らーめん",r:"ra-men",m:"라면",i:"🍜"},{j:"ぱん",r:"pan",m:"빵",i:"🍞"},{j:"にく",r:"niku",m:"고기",i:"🥩"},{j:"たまご",r:"tamago",m:"계란",i:"🥚"}],
+    "날씨": [{j:"はれ",r:"hare",m:"맑음",i:"☀️"},{j:"あめ",r:"ame",m:"비",i:"☔"},{j:"ゆき",r:"yuki",m:"눈",i:"❄️"},{j:"くもり",r:"kumori",m:"흐림",i:"☁️"},{j:"かぜ",r:"kaze",m:"바람",i:"💨"}],
+    "신체": [{j:"め",r:"me",m:"눈",i:"👁️"},{j:"みみ",r:"mimi",m:"귀",i:"👂"},{j:"はな",r:"hana",m:"코",i:"👃"},{j:"くち",r:"kuchi",m:"입",i:"👄"},{j:"て",r:"te",m:"손",i:"✋"}],
+    "가족": [{j:"おとうさん",r:"otousan",m:"아빠",i:"👨"},{j:"おかあさん",r:"okaasan",m:"엄마",i:"👩"},{j:"おにいさん",r:"oniisan",m:"오빠",i:"👦"},{j:"おねえさん",r:"oneesan",m:"언니",i:"👧"},{j:"あかちゃん",r:"akachan",m:"아기",i:"👶"}],
+    "자연": [{j:"やま",r:"yama",m:"산",i:"⛰️"},{j:"うみ",r:"umi",m:"바다",i:"🌊"},{j:"かわ",r:"kawa",m:"강",i:"🏞️"},{j:"そら",r:"sora",m:"하늘",i:"☁️"},{j:"はな",r:"hana",m:"꽃",i:"🌸"}]
+};
+
+let energy = 100, score = 0, totals = {}, current = {}, selectedCard = null;
+
+function showToast(m) {
+    const t = document.getElementById('toast');
+    t.innerText = m; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+function startGame() {
+    if(!document.getElementById('nick').value) return alert("닉네임을 입력하세요!");
+    document.getElementById('login-overlay').style.display = 'none';
+    initStage();
+}
+
+function initStage() {
+    const tArea = document.getElementById('target-area');
+    const tab = document.getElementById('tableau');
+    tArea.innerHTML = ''; tab.innerHTML = ''; selectedCard = null;
+    let cards = [];
+    
+    // 스테이지당 3개의 테마를 랜덤으로 선택 (10개 중)
+    const themes = Object.keys(MASTER_DB).sort(() => Math.random() - 0.5).slice(0, 3);
+    
+    themes.forEach(cat => {
+        let pool = MASTER_DB[cat];
+        current[cat] = 0; totals[cat] = pool.length;
+        
+        const slot = document.createElement('div');
+        slot.className = 'target-slot';
+        slot.innerHTML = `<div class="slot-label">${cat}</div><div class="slot-count" id="c-${cat}">0 / ${pool.length}</div>`;
+        slot.onclick = (e) => {
+            e.preventDefault();
+            if(selectedCard) handleMove(cat, slot);
+        };
+        tArea.appendChild(slot);
+        pool.forEach(c => cards.push({...c, cat: cat}));
+    });
+
+    cards.sort(() => Math.random() - 0.5).forEach((d, idx) => {
+        const c = document.createElement('div');
+        c.className = 'card';
+        c.innerHTML = `<div class="j-txt">${d.j}</div><div class="r-txt">${d.r}</div>`;
+        c.dataset.cat = d.cat;
+        c.dataset.info = JSON.stringify(d);
+        
+        c.style.top = (Math.floor(idx/5) * 25) + "px";
+        
+        // 터치/클릭 이벤트 통합
+        const selectFn = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if(selectedCard) selectedCard.classList.remove('selected');
+            selectedCard = c;
+            c.classList.add('selected');
+            
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(d.j);
+            utter.lang = 'ja-JP';
+            window.speechSynthesis.speak(utter);
+        };
+
+        c.onclick = selectFn;
+        c.ontouchend = selectFn;
+
+        const colId = idx % 5;
+        let col = document.getElementById(`col-${colId}`);
+        if(!col) {
+            col = document.createElement('div'); col.className='column'; col.id=`col-${colId}`;
+            tab.appendChild(col);
+        }
+        col.appendChild(c);
+    });
+    updateUI();
+}
+
+function handleMove(cat, slot) {
+    const data = JSON.parse(selectedCard.dataset.info);
+    if(data.cat === cat) {
+        current[cat]++;
+        score += 100;
+        slot.appendChild(selectedCard);
+        selectedCard.classList.remove('selected');
+        selectedCard.onclick = null;
+        selectedCard.ontouchend = null;
+        selectedCard.innerHTML = `<div class="card-emoji">${data.i}</div><div class="card-mean">${data.m}</div>`;
+        selectedCard = null;
+        if(Object.keys(totals).every(k => current[k] >= totals[k])) {
+            setTimeout(() => { showToast("스테이지 클리어! ✨"); initStage(); }, 500);
+        }
+    } else {
+        energy -= 10;
+        if(selectedCard) selectedCard.classList.remove('selected');
+        selectedCard = null;
+        showToast("정답 슬롯이 아니에요! 😢");
+    }
+    updateUI();
+}
+
+function updateUI() {
+    document.getElementById('score').innerText = score;
+    document.getElementById('energy-fill').style.width = energy + "%";
+    for(let k in totals) {
+        const el = document.getElementById(`c-${k}`);
+        if(el) el.innerText = `${current[k]} / ${totals[k]}`;
+    }
+    if(energy <= 0) {
+        document.getElementById('final-score-val').innerText = score;
+        document.getElementById('gameover-overlay').style.display = 'flex';
+    }
+}
+</script>
+</body>
+</html>
