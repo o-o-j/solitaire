@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>일본어 솔리테어</title>
+
+<style>
+:root { 
+    --bg:#89d358;           
+    --card:#fff; 
+    --accent:#f1c40f; 
+    --green:#2ecc71; 
+}
+
+body { 
+    background: var(--bg); margin:0;
+    display:flex; flex-direction:column; align-items:center;
+    font-family:sans-serif;
+}
+
+.header { text-align:center; color:white; }
+#score { font-size:2rem; font-weight:bold; }
+
+.energy { width:200px;height:10px;background:#ddd;border-radius:10px;overflow:hidden; }
+#energy-fill { height:100%;background:var(--green); }
+
+.target-area { display:flex; gap:10px; margin:20px; flex-wrap:wrap; }
+
+.target-slot {
+    width:80px;height:100px;
+    border:2px dashed white;
+    border-radius:10px;
+    text-align:center;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:0.2s;
+}
+
+.target-slot.highlight {
+    background:rgba(255,255,255,0.3);
+    transform:scale(1.1);
+}
+
+.tableau { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+
+.card {
+    width:60px;height:80px;
+    background:white;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.card.dragging { opacity:0.3; }
+
+.drag-ghost {
+    position:fixed;
+    z-index:9999;
+    pointer-events:none;
+    transform:translate(-50%, -50%);
+    scale:1.1;
+}
+
+.card.correct { animation:pop .25s; }
+@keyframes pop { 50%{transform:scale(1.2);} }
+
+#toast {
+    position:fixed;
+    top:20%;
+    background:black;color:white;
+    padding:10px 20px;
+    border-radius:20px;
+    opacity:0;
+    transition:.3s;
+}
+#toast.show { opacity:1; }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <div id="stage">STAGE 1</div>
+    <div id="score">0</div>
+    <div class="energy"><div id="energy-fill"></div></div>
+</div>
+
+<div id="targets" class="target-area"></div>
+<div id="cards" class="tableau"></div>
+<div id="toast"></div>
+
+<script>
+const DB = {
+"과일":[["林檎","りんご","사과","🍎"],["蜜柑","みかん","귤","🍊"]],
+"동물":[["犬","いぬ","강아지","🐶"],["猫","ねこ","고양이","🐱"]],
+"색":[["赤","あか","빨강","🔴"],["青","あお","파랑","🔵"]]
+};
+
+let state = {
+stage:1,
+score:0,
+energy:100,
+combo:0
+};
+
+let dragCard=null;
+let ghost=null;
+
+const SNAP_DISTANCE = 110;
+
+// 토스트
+function showToast(msg){
+    let t=document.getElementById('toast');
+    t.innerText=msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// 초기화
+function init(){
+    state.combo=0;
+
+    let targets=document.getElementById("targets");
+    let cardsDiv=document.getElementById("cards");
+
+    targets.innerHTML="";
+    cardsDiv.innerHTML="";
+
+    Object.keys(DB).forEach(cat=>{
+        let slot=document.createElement("div");
+        slot.className="target-slot";
+        slot.innerText=cat;
+        targets.appendChild(slot);
+
+        DB[cat].forEach(w=>{
+            let c=document.createElement("div");
+            c.className="card";
+
+            c.innerHTML=`<div>${w[0]}</div>`;
+            c.dataset.cat=cat;
+            c.dataset.mean=w[2];
+            c.dataset.emoji=w[3];
+
+            c.onpointerdown=(e)=>{
+                e.preventDefault();
+                dragCard=c;
+
+                ghost=c.cloneNode(true);
+                ghost.classList.add('drag-ghost');
+                document.body.appendChild(ghost);
+
+                moveGhost(e);
+                c.classList.add('dragging');
+            };
+
+            cardsDiv.appendChild(c);
+        });
+    });
+
+    updateUI();
+}
+
+// ghost 이동
+function moveGhost(e){
+    if(!ghost) return;
+    ghost.style.left=e.clientX+"px";
+    ghost.style.top=e.clientY+"px";
+
+    highlightNearest(e.clientX,e.clientY);
+}
+
+// 슬롯 하이라이트
+function highlightNearest(x,y){
+    let slots=document.querySelectorAll('.target-slot');
+    slots.forEach(s=>s.classList.remove('highlight'));
+
+    let closest=findClosestSlot(x,y);
+    if(closest) closest.classList.add('highlight');
+}
+
+// 가장 가까운 슬롯
+function findClosestSlot(x,y){
+    let slots=document.querySelectorAll('.target-slot');
+    let closest=null;
+    let minDist=Infinity;
+
+    slots.forEach(slot=>{
+        const rect=slot.getBoundingClientRect();
+        const cx=rect.left+rect.width/2;
+        const cy=rect.top+rect.height/2;
+
+        const dx=x-cx;
+        const dy=y-cy;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+
+        if(dist<minDist){
+            minDist=dist;
+            closest=slot;
+        }
+    });
+
+    return (minDist<=SNAP_DISTANCE)?closest:null;
+}
+
+// 이동 추적
+document.addEventListener('pointermove',(e)=>{
+    if(!dragCard) return;
+    moveGhost(e);
+});
+
+// 드롭
+document.addEventListener('pointerup',(e)=>{
+    if(!dragCard) return;
+
+    const slot=findClosestSlot(e.clientX,e.clientY);
+
+    if(slot){
+        handleMove(slot.innerText.trim());
+        navigator.vibrate?.(30);
+    }
+
+    cleanupDrag();
+});
+
+// 정리
+function cleanupDrag(){
+    document.querySelectorAll('.target-slot').forEach(s=>s.classList.remove('highlight'));
+    if(dragCard) dragCard.classList.remove('dragging');
+    if(ghost) ghost.remove();
+    dragCard=null;
+    ghost=null;
+}
+
+// 이동 처리
+function handleMove(cat){
+    let card=dragCard;
+
+    if(card.dataset.cat===cat){
+        state.combo++;
+        let bonus=state.combo*20;
+        state.score+=100+bonus;
+
+        card.classList.add('correct');
+        card.innerHTML=
+        `<div>${card.dataset.emoji}</div>
+         <div>${card.dataset.mean}</div>`;
+
+        card.onpointerdown=null;
+
+        if(state.combo>1) showToast(`🔥 ${state.combo} 콤보 +${bonus}`);
+    }else{
+        state.combo=0;
+        state.energy-=10;
+        showToast("❌ 틀렸어요");
+    }
+
+    updateUI();
+
+    if(state.energy<=0){
+        showToast("💀 게임오버");
+        setTimeout(()=>location.reload(),1000);
+    }
+}
+
+// UI
+function updateUI(){
+    document.getElementById("score").innerText=state.score;
+    document.getElementById("energy-fill").style.width=state.energy+"%";
+}
+
+// 시작
+init();
+</script>
+
+</body>
+</html>
