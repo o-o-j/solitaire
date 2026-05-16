@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>일본어 솔리테어 - UI 정제 완료 판</title>
+    <style>
+        :root { 
+            --bg: #89d358;           
+            --energy-bg: #d1efbd;    
+            --card: #ffffff; 
+            --accent: #f1c40f; 
+            --green: #2ecc71; 
+            --red: #ff4757; 
+            --gold: #ffd700; 
+            --selected: #3498db; 
+        }
+
+        body { 
+            background: var(--bg); margin: 0; padding: 10px; font-family: sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            user-select: none; touch-action: manipulation; color: #333; overflow-x: hidden;
+        }
+        
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1500; display: flex; align-items: center; justify-content: center; }
+        .pop-box { background: white; padding: 25px; border-radius: 25px; text-align: center; width: 85%; max-width: 350px; box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+        
+        .header { width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; gap: 5px; position: relative; }
+        .stage-display { background: var(--accent); color: #333; font-weight: bold; padding: 4px 15px; border-radius: 20px; font-size: 0.85rem; border: 2px solid white; margin-bottom: -5px; z-index: 10; }
+        .score-display { color: white; font-size: 2rem; font-weight: 900; }
+        
+        .energy-container { width: 220px; height: 12px; background: var(--energy-bg); border-radius: 10px; border: 2px solid white; overflow: hidden; }
+        #energy-fill { width: 100%; height: 100%; background: var(--green); transition: width 0.4s ease; }
+
+        .target-area { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 800px; }
+        .target-slot { width: 110px; height: 110px; background: rgba(255,255,255,0.3); border: 2px dashed white; border-radius: 12px; position: relative; flex-shrink: 0; }
+        .slot-label { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; border: 2px solid white; z-index: 5; white-space: nowrap; }
+        .slot-count { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); color: white; font-size: 0.7rem; font-weight: bold; }
+
+        .tableau { display: flex; gap: 8px; justify-content: center; width: 100%; max-width: 600px; min-height: 400px; margin-top: 15px; flex-wrap: wrap; }
+        .column { width: 18%; min-width: 55px; position: relative; display: flex; flex-direction: column; align-items: center; }
+        
+        .card { 
+            width: 55px; height: 80px; background: white; border-radius: 8px; 
+            position: absolute; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1); border: 1px solid #eee; 
+            transition: transform 0.1s; z-index: 10; cursor: pointer;
+        }
+        
+        .card.selected { border: 3px solid var(--selected) !important; transform: translateY(-5px) scale(1.05); z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        .k-txt { font-size: 0.9rem; font-weight: bold; pointer-events: none; text-align: center; }
+        .h-txt { font-size: 0.6rem; font-weight: bold; color: #2980b9; pointer-events: none; text-align: center; margin-top: 2px; }
+        .r-txt { font-size: 0.5rem; color: #7f8c8d; pointer-events: none; text-align: center; margin-top: 2px; }
+        
+        .target-slot .card { position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) scale(0.9) !important; border: 2px solid var(--gold); }
+        .card-emoji { font-size: 1.8rem; pointer-events: none; }
+        .card-mean { font-size: 0.7rem; font-weight: bold; color: #2ecc71; margin-top: 2px; pointer-events: none; }
+
+        button { background: #2ecc71; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 1.1rem; margin-top: 10px; cursor: pointer; }
+        #toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; z-index: 2000; transition: 0.3s; pointer-events: none; text-align: center; white-space: pre-wrap; line-height: 1.4; }
+        #toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div id="login-overlay" class="overlay">
+        <div class="pop-box">
+            <h2>일본어 솔리테어</h2>
+            <p style="font-size: 0.85rem; color: #636e72;">닉네임을 입력하면 <b>기록과 오답노트</b>가 저장됩니다!</p>
+            <input type="text" id="nick" placeholder="닉네임 입력" style="width:80%; padding:10px; border-radius:8px; border:1px solid #ddd; text-align:center; margin-bottom:12px;">
+            <button onpointerdown="startGame()">게임 시작</button>
+        </div>
+    </div>
+
+    <div id="gameover-overlay" class="overlay" style="display:none;">
+        <div class="pop-box">
+            <h2>게임 종료!</h2>
+            <p>달성 스테이지: <span id="final-stage-val" style="font-weight:bold; color:var(--accent);"></span></p>
+            <h1 id="final-score-val">0</h1>
+            <button onpointerdown="location.reload()">다시 도전</button>
+        </div>
+    </div>
+
+    <div id="toast">메시지</div>
+
+    <div class="header">
+        <div class="stage-display">STAGE <span id="st-num">1</span></div>
+        <div id="score" class="score-display">0</div>
+        <div class="energy-container"><div id="energy-fill"></div></div>
+    </div>
+
+    <div id="target-area" class="target-area"></div>
+    <div id="tableau" class="tableau"></div>
+
+<script>
+// [데이터 내부 한글 오타 완벽 박멸 완료]
+const BASE_DATA = {
+    "과일": ["林檎|りんご|ringo|사과|🍎","蜜柑|みかん|mikan|귤|🍊","葡萄|ぶどう|budou|포도|🍇","西瓜|すいか|suika|수박|🍉","桃|もも|momo|복숭아|🍑","苺|いちご|ichigo|딸기|🍓","梨|なし|nashi|배|🍐","柿|かき|kaki|감|🍅"],
+    "동물": ["犬|いぬ|inu|강아지|🐶","猫|ねこ|neko|고양이|🐱","馬|うま|uma|말|🐴","牛|うし|ushi|소|🐮","兎|うさぎ|usagi|토끼|🐰","豚|ぶた|buta|돼지|🐷","熊|くま|kuma|곰|🐻","象|ぞう|zou|코끼리|🐘"],
+    "야채": ["人参|にんじん|ninjin|당근|🥕","玉葱|たまねぎ|tamanegi|양파|🧅","じゃがいも|じゃがいも|jagaimo|감자|🥔","茄子|なす|nasu|가지|🍆","胡瓜|きゅうり|kyuuri|오이|🥒","大蒜|にんにく|ninniku|마늘|🧄"],
+    "색상": ["赤|あか|aka|빨강|🔴","青|あお|ao|파랑|🔵","黄色|きいろ|kiiro|노랑|🟡","黒|くろ|kuro|검정|⚫","白|しろ|shiro|하양|⚪","緑|みどり|midori|초록|🟢"],
+    "탈것": ["車|くるま|kuruma|자동차|🚗","電車|でんしゃ|densha|기차|🚃","飛行機|ひこうき|hikouki|비행기|✈️","船|ふね|fune|배|🚢","自転車|じてんしゃ|jitensha|자전거|🚲","地下鉄|ちかてつ|chikatetsu|지하철|🚇"],
+    "음식": ["寿司|すし|sushi|초밥|🍣","拉麺|ラーメン|ra-men|라면|🍜","パン|ぱん|pan|빵|🍞","肉|にく|niku|고기|🥩","卵|たまご|tamago|계란|🥚","ご飯|ごはん|gohan|밥|🍚"],
+    "날씨": ["晴れ|はれ|hare|맑음|☀️","雨|あめ|ame|비|☔","雪|ゆき|yuki|눈|❄️","曇り|くもり|kumori|흐림|☁️","風|かぜ|kaze|바람|💨","雷|かみなり|kaminari|번개|⚡"],
+    "신체": ["目|め|me|눈|👁️","耳|みみ|mimi|귀|👂","鼻|はな|hana|코|👃","口|くち|kuchi|입|👄","手|て|te|손|✋","足|あし|ashi|발|🦶"],
+    "가족": ["お父さん|おとうさん|otousan|아빠|👨","お母さん|おかあさん|okaasan|엄마|👩","お兄さん|おにいさん|oniisan|오빠|👦","お姉さん|おねえさん|oneesan|언니|👧","赤ちゃん|あかちゃん|akachan|아기|👶"],
+    "자연": ["山|やま|yama|산|⛰️","海|うみ|umi|바다|🌊","川|かわ|kawa|강|🏞️","空|そ라|sora|하늘|☁️","花|はな|hana|꽃|🌸","森|もり|mori|숲|🌲"],
+    "직업": ["医者|いしゃ|isha|의사|👨‍⚕️","先生|せんせい|sensei|선생님|👨‍🏫","警察|けいさつ|keisatsu|경찰|👮","歌手|かしゅ|kashu|가수|🎤","俳優|はいゆう|haiyuu|배우|🎭"],
+    "악기": ["ピアノ|ぴあの|piano|피아노|🎹","ギター|ぎたー|gita-|기타|🎸","バイオリン|ばいおりん|baiorin|바이올린|🎻","ドラム|どらむ|doramu|드럼|🥁","笛|ふえ|fue|피리|🪈"],
+    "의류": ["服|ふく|fuku|옷|👕","靴|くつ|kutsu|신발|👟","帽子|ぼうし|boushi|모자|🧢","靴下|くつした|kutsushita|양말|🧦","眼鏡|め가네|megane|안경|👓"],
+    "교실": ["机|つくえ|tsukue|책상|🪑","椅子|いす|isu|의자|🪑","黒板|こくばん|kokuban|칠판|🏫","鉛筆|えんぴつ|enpitsu|연필|✏️","本|ほん|hon|책|📖"],
+    "주방": ["皿|さら|sara|접시|🍽️","包丁|ほうちょう|houchou|칼|🔪","箸|はし|hashi|젓가락|🥢","コップ|こっぷ|koppu|컵|🥛","鍋|なべ|nabe|냄비|🍲"],
+    "우주": ["星|ほし|hoshi|별|⭐","月|つき|tsuki|달|🌙","太陽|たいよう|taiyou|태양|☀️","宇宙|うちゅう|uchuu|우주|🌌","地球|ちきゅう|chikyuu|지구|🌍"],
+    "곤충": ["蝶|ちょう|chou|나비|🦋","蜂|はち|hachi|벌|🐝","蟻|あり|ari|개미|🐜","蜘蛛|くも|kumo|거미|🕷️","蚊|か|ka|모기|🦟"],
+    "스포츠": ["野球|やきゅう|yakyuu|야구|⚾","サッカー|さっかー|sakka-|축구|⚽","水泳|すいえい|suiei|수영|🏊","卓球|たっきゅう|takkyuu|탁구|🏓","バスケ|ばすけ|basuke|농구|🏀"],
+    "감정": ["笑う|わらう|warau|웃다|😄","泣く|なく|naku|울다|😭","怒る|おこる|okoru|화내다|😡","驚く|おどろく|odoroku|놀라다|😲","喜ぶ|よろこぶ|yorokobu|기뻐하다|😆"],
+    "방향": ["前|まえ|mae|앞|⬆️","後ろ|うしろ|ushiro|뒤|⬇️","右|みぎ|migi|오른쪽|➡️","左|ひだり|hidari|왼쪽|⬅️","上|うえ|ue|위|🔼"]
+};
+
+// 백엔드 정렬 및 제어용 10단계 접두사 (화면에는 노출되지 않음)
+const prefixes = [
+    "[L1]", "[L2]", "[L3]", "[L4]", "[L5]", "[L6]", "[L7]", "[L8]", "[L9]", "[L10]"
+];
+
+const MASTER_DB = {};
+
+// 내부 식별용 stageName 설계
+prefixes.forEach(pref => {
+    for (let cat in BASE_DATA) {
+        let stageName = `${pref} ${cat}`;
+        MASTER_DB[stageName] = BASE_DATA[cat].map(str => {
+            let p = str.split('|');
+            return { k: p[0], h: p[1], r: p[2], m: p[3], i: p[4], cat: stageName };
+        });
+    }
+});
+
+let nick = "";
+let userData = { stage: 1, score: 0, energy: 100, wrongWords: {}, usedWords: {} };
+let sessionWrongLog = {};
+let currentStageTotals = {};
+let currentStageCount = {};
+let selectedCard = null;
+
+function showToast(m) {
+    const t = document.getElementById('toast');
+    t.innerText = m; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function startGame() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        let unlockUtterance = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(unlockUtterance);
+    }
+
+    nick = document.getElementById('nick').value.trim();
+    if(!nick) return alert("닉네임을 입력하세요!");
+    
+    let saved = localStorage.getItem('solitaire_' + nick);
+    if(saved) {
+        userData = JSON.parse(saved);
+        showToast(`환영합니다, ${nick}님!\n${userData.stage} 스테이지부터 이어합니다.`);
+    } else {
+        showToast(`환영합니다, ${nick}님!\n새로운 게임을 시작합니다.`);
+    }
+    
+    document.getElementById('login-overlay').style.display = 'none';
+    initStage();
+}
+
+function saveData() {
+    localStorage.setItem('solitaire_' + nick, JSON.stringify(userData));
+}
+
+function initStage() {
+    document.getElementById('st-num').innerText = userData.stage;
+    const tArea = document.getElementById('target-area');
+    const tab = document.getElementById('tableau');
+    tArea.innerHTML = ''; tab.innerHTML = ''; selectedCard = null;
+    sessionWrongLog = {};
+    let cards = [];
+    
+    let stageIdx = userData.stage - 1;
+    if(stageIdx > 99) stageIdx = 99; 
+    let prefixIdx = Math.floor(stageIdx / 10);
+    let currentPrefix = prefixes[prefixIdx];
+
+    let stageTopics = [];
+    
+    let wrongTopics = Object.keys(userData.wrongWords).filter(cat => userData.wrongWords[cat].length > 0 && cat.startsWith(currentPrefix));
+    stageTopics = wrongTopics.slice(0, 3);
+    
+    let availableTopics = Object.keys(MASTER_DB).filter(cat => cat.startsWith(currentPrefix)).sort(() => Math.random() - 0.5);
+    for(let cat of availableTopics) {
+        if(stageTopics.length >= 3) break;
+        if(!stageTopics.includes(cat)) stageTopics.push(cat);
+    }
+
+    stageTopics.forEach(cat => {
+        let maxCards = Math.floor(Math.random() * 11) + 5; 
+        let wordsForCat = [];
+        
+        if(userData.wrongWords[cat]) {
+            wordsForCat = [...userData.wrongWords[cat]];
+            userData.wrongWords[cat] = []; 
+        }
+        
+        if(!userData.usedWords[cat]) userData.usedWords[cat] = [];
+        let unused = MASTER_DB[cat].filter(w => !userData.usedWords[cat].includes(w.m) && !wordsForCat.some(ww => ww.m === w.m));
+        unused.sort(() => Math.random() - 0.5);
+        
+        let needed = maxCards - wordsForCat.length;
+        if(needed > 0) wordsForCat = wordsForCat.concat(unused.slice(0, needed));
+        
+        if(wordsForCat.length < 5) {
+            let extra = MASTER_DB[cat].filter(w => !wordsForCat.some(ww => ww.m === w.m)).slice(0, 5 - wordsForCat.length);
+            wordsForCat = wordsForCat.concat(extra);
+        }
+
+        wordsForCat.forEach(w => {
+            if(!userData.usedWords[cat].includes(w.m)) userData.usedWords[cat].push(w.m);
+        });
+
+        currentStageCount[cat] = 0; 
+        currentStageTotals[cat] = wordsForCat.length;
+        sessionWrongLog[cat] = [];
+        
+        // [★정제 포인트] 정규식을 통해 내부 접두사 "[L1] " 부분을 잘라내고 순수 카테고리명만 노출
+        const displayCat = cat.replace(/^\[.*?\]\s*/, '');
+        
+        const slot = document.createElement('div');
+        slot.className = 'target-slot';
+        slot.innerHTML = `<div class="slot-label">${displayCat}</div><div class="slot-count" id="c-${cat}">0 / ${wordsForCat.length}</div>`;
+        
+        slot.onpointerdown = (e) => { e.preventDefault(); if(selectedCard) handleMove(cat, slot); };
+        tArea.appendChild(slot);
+        
+        wordsForCat.forEach(c => cards.push({...c, cat: cat}));
+    });
+
+    cards.sort(() => Math.random() - 0.5).forEach((d, idx) => {
+        const c = document.createElement('div');
+        c.className = 'card';
+        
+        let txtHTML = `<div class="k-txt">${d.k}</div>`;
+        if(d.k !== d.h) txtHTML += `<div class="h-txt">${d.h}</div>`;
+        txtHTML += `<div class="r-txt">${d.r}</div>`;
+        
+        c.innerHTML = txtHTML;
+        c.dataset.info = JSON.stringify(d);
+        c.style.top = (Math.floor(idx/5) * 28) + "px";
+        
+        const selectFn = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            if(selectedCard) selectedCard.classList.remove('selected');
+            selectedCard = c; c.classList.add('selected');
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(d.h);
+                utter.lang = 'ja-JP'; window.speechSynthesis.speak(utter);
+            }
+        };
+
+        c.onpointerdown = selectFn;
+
+        const colId = idx % 5;
+        let col = document.getElementById(`col-${colId}`);
+        if(!col) { col = document.createElement('div'); col.className='column'; col.id=`col-${colId}`; tab.appendChild(col); }
+        col.appendChild(c);
+    });
+    updateUI();
+    saveData();
+}
+
+function handleMove(cat, slot) {
+    const data = JSON.parse(selectedCard.dataset.info);
+    if(data.cat === cat) {
+        currentStageCount[cat]++;
+        userData.score += 100;
+        
+        selectedCard.style.top = ''; 
+        slot.appendChild(selectedCard);
+        
+        selectedCard.classList.remove('selected');
+        selectedCard.onpointerdown = null;
+        
+        selectedCard.innerHTML = `<div class="card-emoji">${data.i}</div><div class="card-mean">${data.m}</div>`;
+        selectedCard = null;
+        
+        if(Object.keys(currentStageTotals).every(k => currentStageCount[k] >= currentStageTotals[k])) {
+            for(let k in sessionWrongLog) {
+                if(sessionWrongLog[k].length > 0) {
+                    if(!userData.wrongWords[k]) userData.wrongWords[k] = [];
+                    sessionWrongLog[k].forEach(wrongCard => {
+                        if(!userData.wrongWords[k].some(w => w.m === wrongCard.m)) userData.wrongWords[k].push(wrongCard);
+                    });
+                }
+            }
+            let clearedStage = userData.stage;
+            userData.stage++;
+            saveData();
+            setTimeout(() => { showToast(`🎉 ${clearedStage} 스테이지 클리어! 🎉\n다음 스테이지로 이동합니다.`); initStage(); }, 800);
+        }
+    } else {
+        userData.energy -= 10;
+        if(!sessionWrongLog[data.cat].some(w => w.m === data.m)) sessionWrongLog[data.cat].push(data); 
+        if(selectedCard) selectedCard.classList.remove('selected');
+        selectedCard = null;
+        showToast("정답이 아니에요! 😢\n(틀린 문제는 다음에 다시 나옵니다)");
+    }
+    updateUI();
+    saveData();
+}
+
+function updateUI() {
+    document.getElementById('score').innerText = userData.score;
+    document.getElementById('energy-fill').style.width = userData.energy + "%";
+    for(let k in currentStageTotals) {
+        const el = document.getElementById(`c-${k}`);
+        if(el) el.innerText = `${currentStageCount[k]} / ${currentStageTotals[k]}`;
+    }
+    if(userData.energy <= 0) {
+        document.getElementById('final-stage-val').innerText = userData.stage + " 스테이지";
+        document.getElementById('final-score-val').innerText = userData.score + " 점";
+        document.getElementById('gameover-overlay').style.display = 'flex';
+        userData.energy = 100; userData.stage = 1; userData.score = 0; saveData();
+    }
+}
+</script>
+</body>
+</html>
