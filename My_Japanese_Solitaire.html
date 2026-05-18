@@ -1867,37 +1867,74 @@ function initStage() {
     let maxTopics = (stageNum <= 20) ? 5 : 6;
     let targetTopicCount = Math.floor(Math.random() * (maxTopics - minTopics + 1)) + minTopics;
     
-    let levelPool = VOCAB_DB.filter(w => w.lvl === currentLvl);
-    if (levelPool.length === 0) levelPool = VOCAB_DB; // 백업
+   let levelPool = VOCAB_DB.filter(w => w.lvl === currentLvl);
+if (levelPool.length === 0) levelPool = VOCAB_DB; // 백업
+
+// 겹치는 단어가 나오지 않도록 동적으로 주제를 선별하는 로직
+let stageTopics = [];
+let pickedWordKeys = new Set();
+
+// 현재 레벨 풀에 존재하는 모든 주제 목록을 무작위로 섞음
+let availableCats = [...new Set(levelPool.map(w => w.cat))].sort(() => Math.random() - 0.5);
+
+for (let cat of availableCats) {
+    // 목표로 한 주제 개수를 채우면 중단
+    if (stageTopics.length >= targetTopicCount) break;
+
+    // 해당 주제의 단어들 중 아직 뽑히지 않은 단어들만 필터링
+    let catWords = levelPool.filter(w => w.cat === cat && !pickedWordKeys.has(w.k));
+
+    // 만약 이 주제에 쓸 수 있는 단어가 하나도 없다면(전부 다른 주제와 겹친다면) 이 주제는 패스
+    if (catWords.length === 0) continue;
+
+    // 조건을 만족하면 스테이지 주제로 채택
+    stageTopics.push(cat);
+
+    // 이 주제에서 최대 5개의 단어를 가져와서 사용된 단어 목록(pickedWordKeys)에 등록
+    catWords.sort(() => Math.random() - 0.5);
+    let count = Math.min(5, catWords.length);
+    for (let i = 0; i < count; i++) {
+        pickedWordKeys.add(catWords[i].k);
+    }
+}
+
+// 아래의 stageTopics.forEach 부분에서는 이미 단어를 확보했으므로 pickedWordKeys 처리를 수정해 줍니다.
     
-    let availableCats = [...new Set(levelPool.map(w => w.cat))].sort(() => Math.random() - 0.5);
-    let stageTopics = availableCats.slice(0, targetTopicCount);
+    // 기존의 stageTopics.forEach 구문을 아래와 같이 깔끔하게 정돈해 줍니다.
+stageTopics.forEach(cat => {
+    // 위에서 이미 체크했으므로 동일하게 해당 주제 단어 중 안 뽑힌 단어를 가져옴
+    let catWords = levelPool.filter(w => w.cat === cat).sort(() => Math.random() - 0.5);
     
-    let pickedWordKeys = new Set();
-    
-    stageTopics.forEach(cat => {
-        let catWords = levelPool.filter(w => w.cat === cat && !pickedWordKeys.has(w.k)).sort(() => Math.random() - 0.5);
-        let count = Math.min(5, catWords.length);
-        
-        currentStageTotals[cat] = count;
-        currentStageCount[cat] = 0;
-        
-        for(let i=0; i<count; i++) {
-            cards.push(catWords[i]);
-            pickedWordKeys.add(catWords[i].k); 
+    // 실제 이번 스테이지에 올릴 최종 단어 선별 (여기서도 중복 단어는 거름)
+    let finalCatWords = [];
+    for(let w of catWords) {
+        // 내가 이 주제를 처리하기 전 단계에서 '다른 주제'가 선점하지 않은 단어이거나, 
+        // 혹은 이번 주제 내에서 처음 등장하는 단어인 경우만 등록
+        if (!cards.some(c => c.k === w.k)) {
+            finalCatWords.push(w);
+            if (finalCatWords.length >= 5) break; // 주제당 최대 5개
         }
-        
-        if (tArea) {
-            const slot = document.createElement('div');
-            slot.className = 'target-slot';
-            slot.innerHTML = `
-                <div class="slot-label">${cat}</div>
-                <div class="slot-count" id="count-${cat}">0 / ${count}</div>
-            `;
-            slot.onpointerdown = () => handleMove(cat, slot);
-            tArea.appendChild(slot);
-        }
-    });
+    }
+
+    let count = finalCatWords.length;
+    currentStageTotals[cat] = count;
+    currentStageCount[cat] = 0;
+
+    for(let i=0; i<count; i++) {
+        cards.push(finalCatWords[i]);
+    }
+
+    if (tArea) {
+        const slot = document.createElement('div');
+        slot.className = 'target-slot';
+        slot.innerHTML = `
+            <div class="slot-label">${cat}</div>
+            <div class="slot-count" id="count-${cat}">0 / ${count}</div>
+        `;
+        slot.onpointerdown = () => handleMove(cat, slot);
+        tArea.appendChild(slot);
+    }
+});
     
     cards.sort(() => Math.random() - 0.5);
     
