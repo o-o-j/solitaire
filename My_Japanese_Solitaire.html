@@ -1847,58 +1847,56 @@ function saveData() {
 function initStage() {
     if (document.getElementById('st-num')) document.getElementById('st-num').innerText = userData.stage;
     if (document.getElementById('stage-val')) document.getElementById('stage-val').innerText = userData.stage;
-    
+
     const tArea = document.getElementById('target-area');
     const tab = document.getElementById('tableau');
     if (tArea) tArea.innerHTML = '';
     if (tab) tab.innerHTML = '';
-    
+
     selectedCard = null;
-    isProcessingMove = false; 
+    isProcessingMove = false;
     sessionWrongLog = {};
     currentStageTotals = {};
     currentStageCount = {};
-    currentStageWrongWordsList = []; 
+    currentStageWrongWordsList = [];
+
     let cards = [];
     let stageNum = userData.stage;
-    
     let currentLvl = Math.min(5, Math.floor((stageNum - 1) / 20) + 1);
+
     let minTopics = (stageNum <= 20) ? 3 : 4;
     let maxTopics = (stageNum <= 20) ? 5 : 6;
     let targetTopicCount = Math.floor(Math.random() * (maxTopics - minTopics + 1)) + minTopics;
-    
+
     let levelPool = VOCAB_DB.filter(w => w.lvl === currentLvl);
     if (levelPool.length === 0) levelPool = VOCAB_DB; // 백업
 
-    // 1. 현재 레벨 풀에 존재하는 유니크한 모든 카테고리 추출
-    let allCatsInLvl = [...new Set(levelPool.map(w => w.cat))];
-    // 매판 다른 주제 조합이 나오도록 카테고리 배열 무작위 셔플
-    allCatsInLvl.sort(() => Math.random() - 0.5);
-
     let stageTopics = [];
     let pickedWordKeys = new Set();
+    
+    // 선별된 단어들을 주제별로 안전하게 담아둘 맵 객체 생성
+    let topicWordsMap = {};
 
     // 💡 [서로 마주치면 안 되는 주제 그룹들 정의]
     const conflictGroups = [
-        ["학용품", "수업시간", "등교준비"], // 레벨 1 중복 그룹
-        ["체육시간", "스포츠"],             // 레벨 4 중복 그룹
-        ["과학", "생물학", "화학"],         // 레벨 5 중복 과학 그룹
-        ["의성어", "의태어"]                // 레벨 5 중복 표현 그룹
+        ["학용품", "수업시간"], 
+        ["수업시간", "등교준비"],
+        ["학용품", "등교준비"],
+        ["체육시간", "스포츠"],             
+        ["과학", "생물학"],         
+        ["의성어", "의태어"]                
     ];
 
-    let minTopics = (stageNum <= 20) ? 3 : 4;
-    let maxTopics = (stageNum <= 20) ? 5 : 6;
-    let targetTopicCount = Math.floor(Math.random() * (maxTopics - minTopics + 1)) + minTopics;
+    // 현재 레벨 풀에 존재하는 모든 주제 목록을 무작위로 섞음
+    let availableCats = [...new Set(levelPool.map(w => w.cat))].sort(() => Math.random() - 0.5);
 
-    // 2. 루프를 돌며 충돌(중복 단어)을 피하는 카테고리 선별
-    for (let cat of allCatsInLvl) {
+    for (let cat of availableCats) {
         if (stageTopics.length >= targetTopicCount) break;
 
-        // 현재 검사 중인 카테고리가 기존에 뽑힌 카테고리와 충돌하는지 체크
+        // 금지 그룹에 걸리는지 확인
         let isBlocked = false;
         for (let group of conflictGroups) {
             if (group.includes(cat)) {
-                // 이미 해당 그룹 내의 다른 카테고리가 stageTopics에 들어가 있다면 탈락!
                 if (group.some(sibling => stageTopics.includes(sibling))) {
                     isBlocked = true;
                     break;
@@ -1907,30 +1905,29 @@ function initStage() {
         }
         if (isBlocked) continue;
 
-        // 해당 주제의 단어들 중 '글자 자체(k)'가 이전에 뽑힌 단어들과 중복되지 않는 것만 필터링
+        // 단어 중복 제거 필터링
         let catWords = levelPool.filter(w => w.cat === cat && !pickedWordKeys.has(w.k));
         if (catWords.length === 0) continue;
 
-        // 조건을 통과했다면 최종 스테이지 카테고리로 채택
+        // 통과 시 주제 선정
         stageTopics.push(cat);
 
-        // 카드가 꼬이지 않도록 이 주제에서 사용할 단어를 미리 확보하여 중복체크용 Set에 등록
+        // 단어 추출 및 셔플
         catWords.sort(() => Math.random() - 0.5);
         let count = Math.min(5, catWords.length);
-        
-        // 중요: 나중에 카드를 생성할 때 쓸 수 있도록 선별된 어휘를 매칭해둠
-        cat.selectedWords = catWords.slice(0, count); 
-        cat.selectedWords.forEach(w => pickedWordKeys.add(w.k));
+        let selected = catWords.slice(0, count);
+
+        // 안전하게 맵에 저장하고 중복 체크용 Set에 기록
+        topicWordsMap[cat] = selected;
+        selected.forEach(w => pickedWordKeys.add(w.k));
     }
 
-    // 3. 선별된 카테고리를 순회하며 화면에 슬롯을 배치하고 카드를 대입
+    // 💡 선별된 주제를 돌며 슬롯 및 카드 배열에 쏙쏙 담기
     stageTopics.forEach(cat => {
-        // 위 루프에서 안전하게 미리 확보해둔 단어 목록을 가져옴
-        let finalCatWords = allCatsInLvl.find(c => c === cat) ? 
-                            stageTopics.find(t => t === cat == t).selectedWords || [] : [];
+        let finalCatWords = topicWordsMap[cat] || [];
         
-        // 혹시 비어있을 경우를 대비한 방어 코드
-        if(finalCatWords.length === 0) {
+        // 방어용 코드
+        if (finalCatWords.length === 0) {
             finalCatWords = levelPool.filter(w => w.cat === cat).slice(0, 5);
         }
 
@@ -1938,7 +1935,7 @@ function initStage() {
         currentStageTotals[cat] = count;
         currentStageCount[cat] = 0;
 
-        for(let i = 0; i < count; i++) {
+        for (let i = 0; i < count; i++) {
             cards.push(finalCatWords[i]);
         }
 
@@ -1953,64 +1950,8 @@ function initStage() {
             tArea.appendChild(slot);
         }
     });
-    // 만약 금지 규칙(예: 학용품이 이미 뽑혔는데 지금 수업시간을 검사 중)에 걸렸다면 패스!
-    if (isBlocked) continue;
 
-    // 해당 주제의 단어들 중 아직 뽑히지 않은 단어들만 필터링
-    let catWords = levelPool.filter(w => w.cat === cat && !pickedWordKeys.has(w.k));
-
-    // 만약 이 주제에 쓸 수 있는 단어가 하나도 없다면 패스
-    if (catWords.length === 0) continue;
-
-    // 조건을 만족하면 스테이지 주제로 채택
-    stageTopics.push(cat);
-
-    // 이 주제에서 최대 5개의 단어를 가져와서 사용된 단어 목록(pickedWordKeys)에 등록
-    catWords.sort(() => Math.random() - 0.5);
-    let count = Math.min(5, catWords.length);
-    for (let i = 0; i < count; i++) {
-        pickedWordKeys.add(catWords[i].k);
-    }
-}
-
-// 아래의 stageTopics.forEach 부분에서는 이미 단어를 확보했으므로 pickedWordKeys 처리를 수정해 줍니다.
-    
-    // 기존의 stageTopics.forEach 구문을 아래와 같이 깔끔하게 정돈해 줍니다.
-stageTopics.forEach(cat => {
-    // 위에서 이미 체크했으므로 동일하게 해당 주제 단어 중 안 뽑힌 단어를 가져옴
-    let catWords = levelPool.filter(w => w.cat === cat).sort(() => Math.random() - 0.5);
-    
-    // 실제 이번 스테이지에 올릴 최종 단어 선별 (여기서도 중복 단어는 거름)
-    let finalCatWords = [];
-    for(let w of catWords) {
-        // 내가 이 주제를 처리하기 전 단계에서 '다른 주제'가 선점하지 않은 단어이거나, 
-        // 혹은 이번 주제 내에서 처음 등장하는 단어인 경우만 등록
-        if (!cards.some(c => c.k === w.k)) {
-            finalCatWords.push(w);
-            if (finalCatWords.length >= 5) break; // 주제당 최대 5개
-        }
-    }
-
-    let count = finalCatWords.length;
-    currentStageTotals[cat] = count;
-    currentStageCount[cat] = 0;
-
-    for(let i=0; i<count; i++) {
-        cards.push(finalCatWords[i]);
-    }
-
-    if (tArea) {
-        const slot = document.createElement('div');
-        slot.className = 'target-slot';
-        slot.innerHTML = `
-            <div class="slot-label">${cat}</div>
-            <div class="slot-count" id="count-${cat}">0 / ${count}</div>
-        `;
-        slot.onpointerdown = () => handleMove(cat, slot);
-        tArea.appendChild(slot);
-    }
-});
-    
+    // 💡 화면에 카드들을 깔아주는 (이전에 밖으로 밀려났던) 로직
     cards.sort(() => Math.random() - 0.5);
     
     cards.forEach((d, idx) => {
