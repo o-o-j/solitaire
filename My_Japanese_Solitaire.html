@@ -2005,34 +2005,37 @@ function handleMove(cat, slot) {
         const data = JSON.parse(selectedCard.dataset.info);
         if (!data || !data.cat) return;
 
+        // ------------------------------------------------------------
+        // 🎯 1. 정답을 맞춘 경우
+        // ------------------------------------------------------------
         if (data.cat === cat) {
             isProcessingMove = true; 
-            currentStageCount[cat]++;
-            currentCombo++;
-            userData.score += 100 + (currentCombo * 10); 
 
-            if (userData.score > (userData.highScore || 0)) {
-                userData.highScore = userData.score;
+            // 해당 카테고리의 맞춘 카드 카운트 증가 및 UI 업데이트
+            currentStageCount[cat]++;
+            if (document.getElementById(`count-${cat}`)) {
+                document.getElementById(`count-${cat}`).innerText = `${currentStageCount[cat]} / ${currentStageTotals[cat]}`;
             }
 
+            // 콤보 증가 및 정상적인 점수 계산 (기본 10점 + 콤보 보너스)
+            currentCombo++; 
+            let earnedScore = 10 + (currentCombo * 5); 
+            userData.score += earnedScore;
+            userData.gold += earnedScore;
+
+            // 화면에 콤보 이펙트 표시
             const comboEl = document.getElementById('live-combo');
             if (comboEl) {
-                comboEl.innerText = `${currentCombo} 콤보 🔥`;
-                comboEl.style.display = 'inline-flex';
-                comboEl.classList.remove('combo-active');
-                void comboEl.offsetWidth; 
-                comboEl.classList.add('combo-active');
+                comboEl.innerText = `${currentCombo} COMBO! (+${earnedScore}점)`;
+                comboEl.style.display = 'block';
             }
 
-            const countEl = document.getElementById(`count-${cat}`);
-            if (countEl) {
-                countEl.innerText = `${currentStageCount[cat]} / ${currentStageTotals[cat]}`;
-            }
-
+            // 애니메이션 연출을 위해 카드 정보 복사 후 원본 선택 해제
             const previousColumn = selectedCard.parentElement;
             const movingCard = selectedCard; 
             selectedCard = null; 
 
+            // 슬롯으로 날아가는 좌표 계산
             const cardRect = movingCard.getBoundingClientRect();
             const slotRect = slot.getBoundingClientRect();
             const diffX = slotRect.left - cardRect.left + (slotRect.width / 2) - (cardRect.width / 2);
@@ -2044,19 +2047,23 @@ function handleMove(cat, slot) {
             movingCard.style.opacity = "0.8";
             movingCard.style.pointerEvents = "none"; 
 
+            // 날아가는 애니메이션이 끝난 후 (0.35초 뒤) 처리
             setTimeout(() => {
                 movingCard.removeAttribute('style'); 
                 movingCard.classList.remove('selected');
                 movingCard.onpointerdown = null; 
                 movingCard.style.zIndex = currentStageCount[cat]; 
                 
+                // 슬롯 안으로 카드 이동 안착
                 slot.appendChild(movingCard);
                 
+                // 카드의 내용을 뜻과 이모지로 변환
                 movingCard.innerHTML = `
-                   <div class="card-emoji">${data.i || ""}</div>
+                    <div class="card-emoji">${data.i || ""}</div>
                     <div class="card-mean">${data.m}</div>
                 `;
 
+                // 기존 열에 남아있는 카드들 간격 재정렬
                 if (previousColumn && previousColumn.classList.contains('column')) {
                     realignColumn(previousColumn);
                 }
@@ -2067,15 +2074,20 @@ function handleMove(cat, slot) {
                 checkStageClear();
             }, 350);
 
+        // ------------------------------------------------------------
+        // ❌ 2. 틀린 카테고리에 넣은 경우 (오답)
+        // ------------------------------------------------------------
         } else {
+            // 틀렸으므로 콤보는 반드시 0으로 리셋!
             currentCombo = 0;
             const comboEl = document.getElementById('live-combo');
             if (comboEl) comboEl.style.display = 'none';
 
             if (selectedCard) {
                 const tempCard = selectedCard;
-                tempCard.classList.add('shake-card');
+                tempCard.classList.add('shake-card'); // 흔들리는 효과
                 isProcessingMove = true; 
+                
                 setTimeout(() => {
                     if (tempCard) {
                         tempCard.classList.remove('shake-card');
@@ -2084,6 +2096,8 @@ function handleMove(cat, slot) {
                     isProcessingMove = false;
                 }, 400);
             }
+            
+            // 오답 처리 함수 실행 (하트 감소 등)
             handleWrongAnswer(); 
             selectedCard = null;
         }
