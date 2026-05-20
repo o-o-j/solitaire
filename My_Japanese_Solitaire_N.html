@@ -114,6 +114,20 @@
         .achieve-reward { font-size: 0.8rem; color: var(--gold); font-weight: bold; }
         .achieve-btn { width: 75px !important; padding: 6px 0 !important; margin: 0 !important; font-size: 0.8rem !important; border-radius: 8px !important; }
         .daily-box { background: #f9f9f9; border: 2px dashed var(--green); border-radius: 15px; padding: 15px; margin: 15px 0; text-align: center; }
+        
+        @media (max-width: 600px) {
+        /* 모바일에서 게임 화면 전체를 축소하여 화면에 맞춤 */
+        #game-container {
+            transform: scale(0.8); 
+            transform-origin: top center;
+            width: 100vw;
+        }
+        body {
+            overflow-x: hidden;
+            touch-action: none;
+        }
+}
+    
     </style>
 </head>
 <body>
@@ -2188,4 +2202,4 @@ window.onload = () => {
 } // 1. handleMove 함수 닫기
 </script>
 </body>
-</html> // 2. HTML 문서 닫기
+</html> 
