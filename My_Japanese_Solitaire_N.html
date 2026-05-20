@@ -49,7 +49,17 @@
             align-items: center; justify-content: center; 
             box-shadow: 0 3px 6px rgba(0,0,0,0.1); border: 1px solid #eee; 
             transition: transform 0.1s; z-index: 10; cursor: pointer;
+            background-color: var(--card-color);
+            /* 카드 배경색이 어두우면 글자색을 반전시켜 흰색 계열로 만듭니다 */
+           color: var(--text-color, #333); 
         }
+
+
+        /* 어두운 테마용 클래스를 정의하여 관리 */
+        .dark-theme .card {
+        color: #ffffff;
+         }
+        
         
         .card.selected { border: 3px solid var(--selected) !important; transform: translateY(-5px) scale(1.05); z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         
@@ -68,7 +78,13 @@
         .lobby-btn { padding: 20px 10px; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; gap: 8px; border-radius: 15px; }
         .close-btn { background: #95a5a6; margin-top: 20px; }
 
-        .shop-item { border: 1px solid #ddd; border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left;}
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }       
         .shop-item button { width: auto; margin: 0; padding: 8px 15px; font-size: 0.9rem; }
 
         .vocab-list, .note-list { text-align: left; max-height: 350px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 10px; border: 1px solid #ddd; }
@@ -96,7 +112,42 @@
 
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
         .shake-card { display: inline-block !important; position: relative !important; z-index: 9999 !important; animation: shake 0.4s ease-in-out !important; border: 2px solid var(--red) !important; box-shadow: 0 0 12px rgba(255, 71, 87, 0.6) !important; }
-    </style>
+        /* 상점 모달 스타일 개선 */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .shop-card {
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            background: #fdfdfd;
+            transition: 0.2s;
+        }
+
+        .shop-card:hover { border-color: var(--green); }
+
+        .tab-btn {
+            background: #eee;
+            color: #555;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--green);
+            color: white;
+        }
+   
+   
+   
+   </style>
 </head>
 <body>
 
@@ -162,22 +213,22 @@
     </div>
 
     <div id="shop-modal" class="overlay" style="display:none; flex-direction: column;">
-        <div class="modal-content" style="background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px;">
-            <h3>상점</h3>
-            <p>내 골드: <span id="shop-gold">0</span></p>
-            
-            <div style="display:flex; justify-content: space-around; margin-bottom: 15px;">
-                <button onclick="renderShop('item')">아이템</button>
-                <button onclick="renderShop('skin')">스킨</button>
-                <button onclick="renderShop('char')">캐릭터</button>
-            </div>
-            
-            <div id="shop-list" style="height: 250px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
-                </div>
-            
-            <button onclick="document.getElementById('shop-modal').style.display='none'" style="margin-top: 15px; width: 100%;">닫기</button>
+    <div class="modal-content" style="background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 450px;">
+        <h2 style="margin-top:0;">🛒 상점</h2>
+        <div style="font-size: 1.1rem; margin-bottom: 15px;">보유 골드: <b style="color:var(--gold);"><span id="shop-gold">0</span> G</b></div>
+        
+        <div style="display:flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <button class="tab-btn active" onclick="renderShop('item', this)">아이템</button>
+            <button class="tab-btn" onclick="renderShop('skin', this)">스킨</button>
+            <button class="tab-btn" onclick="renderShop('char', this)">캐릭터</button>
         </div>
+        
+        <div id="shop-list" class="shop-grid">
+            </div>
+        
+        <button onclick="document.getElementById('shop-modal').style.display='none'" style="margin-top: 25px; background:#95a5a6;">닫기</button>
     </div>
+</div>
 
 
     <div id="gameover-overlay" class="overlay" style="display:none;">
@@ -1857,8 +1908,10 @@ const VOCAB_DB = [
         { k: "ぐらぐら", h: "ぐらぐら", r: "guragura", m: "흔들리거나 불안정한 상태", cat: "의태어", lvl: 5 },
         { k: "ふらふら", h: "ふらふら", r: "furafura", m: "어지럽거나 비틀거리는 모습", cat: "의태어", lvl: 5 },
         { k: "ぴょんぴょん", h: "ぴょんぴょん", r: "pyonpyon", m: "깡충깡충 뛰는 모습", cat: "의태어", lvl: 5 },
-];
+
+    ];
 // 🎯 [END] VOCAB_DB 끝나는 부분
+
 
 
 let nick = "";
@@ -1898,6 +1951,48 @@ const CHARACTER_DB = {
     'pierrot': { name: '삐에로', emoji: '🤡', price: 1000 },
 };
 
+const SKIN_DB = {
+        'default': { name: '기본', bg: '#89d358', card: '#ffffff', price: 0 },
+        'spring': { name: '봄 🌸', bg: '#FFC0CB', card: '#98FB98', price: 10000 },
+        'summer': { name: '여름 🌊', bg: '#87CEEB', card: '#FF4500', price: 10000 },
+        'autumn': { name: '가을 🍂', bg: '#e67e22', card: '#fff3e0', price: 10000 },
+        'winter': { name: '겨울 ❄️', bg: '#003366', card: '#F5F5DC', price: 10000 },
+        'night': { name: '밤 🌙', bg: '#0B1D51', card: '#C0C0C0', price: 10000 }
+};
+
+
+// 밝기 계산 함수 (RGB 값을 밝기로 변환)
+function getContrastYIQ(hexcolor) {
+    hexcolor = hexcolor.replace("#", "");
+    const r = parseInt(hexcolor.substr(0, 2), 16);
+    const g = parseInt(hexcolor.substr(2, 2), 16);
+    const b = parseInt(hexcolor.substr(4, 2), 16);
+    // YIQ 공식 사용
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? 'black' : 'white';
+}
+
+// 스킨 적용 함수 수정
+function applySkin(skinId) {
+    const skin = SKIN_DB[skinId];
+    if (!skin) return;
+    
+    // 배경색 적용
+    document.body.style.background = skin.bg;
+    
+    // 카드색 적용
+    document.querySelectorAll('.card, .target-slot').forEach(card => {
+        card.style.backgroundColor = skin.card;
+        // 밝기 계산해서 글자색 자동 반전
+        const rgb = parseInt(skin.card.replace('#',''), 16);
+        card.style.color = (rgb > 0x888888) ? '#000' : '#fff';
+    });
+    
+    userData.currentSkin = skinId;
+    saveData();
+    alert(skin.name + " 적용 완료!");
+}
+
 function showToast(msg) {
     const t = document.getElementById('toast');
     if (!t) return;
@@ -1921,11 +2016,15 @@ function loginAndGoToLobby() {
         } catch(e) { console.error(e); }
     } else {
         userData.nick = nick;
+        userData.currentSkin = "default"; // 신규 유저는 기본 스킨 설정
     }
     
-    applySkin(); 
+    // 수정: 저장된 스킨 ID를 가져와서 적용
+    applySkin(userData.currentSkin); 
+    
     goToLobby();
 }
+
 
 function goToLobby() {
     document.getElementById('login-overlay').style.display = 'none';
@@ -2031,43 +2130,95 @@ function openModal(id) {
     }
 }
 
-// 상점 캐릭터 리스트 렌더링 함수
-// 상점에 캐릭터 목록을 뿌려주는 함수
-function renderShop(type = 'char') { // 기본값을 'char'로 설정해도 좋습니다
+// 2. 상점 화면 렌더링 (가로 리스트 형태 최적화 및 4열 스킨 격자)
+function renderShop(type = 'char', btnElement = null) {
     const shopList = document.getElementById('shop-list');
     if (!shopList) return;
 
-    let html = '';
-    
-    // 캐릭터 탭: 이모지 크기를 1.5rem → 1.2rem으로 줄이고 레이아웃 조정
-    if (type === 'char') {
-    html = `<h4>캐릭터 상점</h4>`;
-    for (let id in CHARACTER_DB) {
-        let char = CHARACTER_DB[id];
-        let isOwned = userData.ownedChars.includes(id);
-        html += `
-            <div style="padding: 5px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem;">
-                <div style="display: flex; align-items: center; gap: 5px; overflow: hidden;">
-                    <span style="font-size: 1rem;">${char.emoji}</span>
-                    <span style="white-space: nowrap;">${char.name}</span>
-                </div>
-                ${isOwned ? 
-                    `<button onclick="equipChar('${id}')" style="padding: 2px 4px; font-size: 0.7rem; min-width: 45px;">${userData.char === id ? '장착중' : '장착'}</button>` : 
-                    `<button onclick="buyChar('${id}')" style="padding: 2px 4px; font-size: 0.7rem; min-width: 50px;">${char.price}G</button>`}
-            </div>`;
-        }
+    // 탭 버튼 클릭 시 활성화 상태 변경
+    if (btnElement) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
     }
-    // 아이템 탭 등도 위와 같이 padding과 font-size를 조절하면 됩니다.
-    else if (type === 'item') {
-        html = `<h4>아이템 상점</h4>
-                <div style="padding: 10px;">
-                    <p style="margin: 5px 0;">힌트 (${userData.inventory.hint}개) <button onclick="buyItem('hint', 100)" style="padding: 2px 5px;">100G</button></p>
-                    <p style="margin: 5px 0;">스킵 (${userData.inventory.skip}개) <button onclick="buyItem('skip', 200)" style="padding: 2px 5px;">200G</button></p>
+
+    let html = '';
+
+    // 🧑‍🎓 캐릭터 탭: 한 눈에 들어오는 깔끔한 가로형 리스트
+    if (type === 'char') {
+        html = '<div style="display:flex; flex-direction:column; gap:8px; width:100%; box-sizing:border-box;">';
+        for (let id in CHARACTER_DB) {
+            let char = CHARACTER_DB[id];
+            let isOwned = userData.ownedChars.includes(id);
+            html += `
+                <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; box-sizing:border-box; height:65px;">
+                    <div style="font-size:2.5rem; width:50px; text-align:center; flex-shrink:0; line-height:1;">${char.emoji}</div>
+                    
+                    <div style="flex-grow:1; text-align:left; padding-left:8px; overflow:hidden;">
+                        <div style="font-weight:bold; font-size:1.1rem; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${char.name}</div>
+                    </div>
+                    
+                    <div style="flex-shrink:0;">
+                        ${isOwned ? 
+                            `<button onclick="equipChar('${id}')" style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; background:${userData.char === id ? '#95a5a6' : 'var(--green)'}; border:none; color:white; cursor:pointer;">${userData.char === id ? '장착중' : '장착'}</button>` : 
+                            `<button onclick="buyChar('${id}')" style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; border:none; cursor:pointer;">${char.price}G</button>`}
+                    </div>
                 </div>`;
+        }
+        html += '</div>';
+    } 
+    // 🎒 아이템 탭: 캐릭터와 완벽히 동일한 가로형 리스트 구조 (구겨 넣지 않음)
+    else if (type === 'item') {
+        html = '<div style="display:flex; flex-direction:column; gap:8px; width:100%; box-sizing:border-box;">';
+        
+        // 힌트 아이템
+        html += `
+            <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; box-sizing:border-box; height:65px;">
+                <div style="font-size:2.3rem; width:50px; text-align:center; flex-shrink:0; line-height:1;">💡</div>
+                <div style="flex-grow:1; text-align:left; padding-left:8px; overflow:hidden;">
+                    <div style="font-weight:bold; font-size:1.1rem; color:#222;">힌트</div>
+                    <div style="font-size:0.75rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">단어의 위치를 알려줍니다</div>
+                </div>
+                <div style="flex-shrink:0;">
+                    <button style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; border:none; cursor:pointer;" onclick="buyItem('hint', 100)">100G</button>
+                </div>
+            </div>`;
+            
+        // 스킵 아이템
+        html += `
+            <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; box-sizing:border-box; height:65px;">
+                <div style="font-size:2.3rem; width:50px; text-align:center; flex-shrink:0; line-height:1;">🎫</div>
+                <div style="flex-grow:1; text-align:left; padding-left:8px; overflow:hidden;">
+                    <div style="font-weight:bold; font-size:1.1rem; color:#222;">스킵</div>
+                    <div style="font-size:0.75rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">스테이지를 즉시 넘깁니다</div>
+                </div>
+                <div style="flex-shrink:0;">
+                    <button style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; border:none; cursor:pointer;" onclick="buyItem('skip', 500)">500G</button>
+                </div>
+            </div>`;
+            
+        html += '</div>';
+    } 
+    // 🎨 스킨 탭: 공간을 낭비하지 않는 컴팩트한 한 줄 4개 격자 (Grid)
+    else if (type === 'skin') {
+        html = '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; width:100%; box-sizing:border-box;">';
+        for (let id in SKIN_DB) {
+            let s = SKIN_DB[id];
+            let isEquipped = userData.currentSkin === id;
+            html += `
+                <div class="shop-card" style="background:${s.card}; border:2px solid ${s.bg}; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:8px 4px; border-radius:8px; box-sizing:border-box; min-height:75px; aspect-ratio: 1 / 1.1;">
+                    <div style="font-weight:bold; font-size:0.75rem; margin-bottom:6px; text-align:center; color:${getContrastYIQ(s.card)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${s.name}</div>
+                    
+                    <button onclick="applySkin('${id}')" style="width:85%; padding:4px 0; border-radius:5px; font-size:0.7rem; font-weight:bold; border:none; background:${isEquipped ? '#95a5a6' : 'var(--green)'}; color:white; cursor:pointer;">
+                        ${isEquipped ? 'ON' : '적용'}
+                    </button>
+                </div>`;
+        }
+        html += '</div>';
     }
     
     shopList.innerHTML = html;
 }
+
 
 function buyChar(id) {
     if (userData.gold >= CHARACTER_DB[id].price) {
@@ -2220,38 +2371,44 @@ function buySkin(skinType, price) {
     showToast("✨ 스킨이 변경되었습니다!");
 }
 
-function applySkin() {
-    let bgColor = "#89d358"; 
-    if (userData.currentSkin === "pink") bgColor = "#fab1a0";
-    if (userData.currentSkin === "night") bgColor = "#2c3e50";
+// 1. 스킨 및 UI 색상 동적 적용 함수
+function applySkin(skinId = userData.currentSkin || 'default') {
+    const skin = SKIN_DB[skinId];
+    if (!skin) return;
     
-    document.documentElement.style.setProperty('--bg', bgColor);
-}
-
-function useHintItem() {
-    if (userData.inventory.hint <= 0) {
-        showToast("❌ 힌트가 없습니다. 상점에서 구매하세요!");
-        return;
-    }
-    if (!selectedCard) {
-        showToast("💡 힌트를 사용할 카드를 먼저 눌러주세요!");
-        return;
-    }
-    const data = JSON.parse(selectedCard.dataset.info);
-    const targetCat = data.cat;
-    
-    const slots = document.querySelectorAll('.target-slot');
-    slots.forEach(slot => {
-        if (slot.querySelector('.slot-label').innerText === targetCat) {
-            slot.style.boxShadow = "0 0 20px 8px var(--accent)";
-            setTimeout(() => { slot.style.boxShadow = "none"; }, 1500);
-        }
-    });
-    
-    userData.inventory.hint--;
+    userData.currentSkin = skinId;
     saveData();
+    
+    // 전체 웹페이지 배경색 변경
+    document.body.style.background = skin.bg;
+    
+    // 상점 레이아웃 구조 변경 (스킨은 4열 격자, 캐릭터/아이템은 세로 리스트)
+    const shopList = document.getElementById('shop-list');
+    if (shopList) {
+        const currentTab = document.querySelector('.tab-btn.active');
+        const tabType = currentTab ? currentTab.getAttribute('onclick').match(/'([^']+)'/)[1] : 'item';
+        
+        if (tabType === 'skin') {
+            shopList.style.display = 'grid';
+            shopList.style.gridTemplateColumns = 'repeat(4, 1fr)';
+            shopList.style.gap = '6px';
+        } else {
+            shopList.style.display = 'flex';
+            shopList.style.flexDirection = 'column';
+            shopList.style.gap = '8px';
+        }
+    }
+}
+// 3. 힌트 및 스킨 적용 로직
+function useHintItem() {
+    if (userData.inventory.hint <= 0) return showToast("힌트가 부족합니다!");
+    userData.inventory.hint--;
     updateUI();
-    showToast("💡 정답 위치가 반짝입니다!");
+    
+    // 대상 단어 반짝임 효과
+    const target = document.querySelector('.target-slot'); // 예시 타겟
+    target.classList.add('shake-card');
+    setTimeout(() => target.classList.remove('shake-card'), 1000);
 }
 
 function useSkipItem() {
@@ -2617,74 +2774,247 @@ function filterVocabList(query) {
     }
 }
 
-// 💡 아래에 붙여넣으세요!
-window.addEventListener('load', () => {
-        updateGameCharacter();
-    });
+// ==========================================
+// 🛒 상점, 스킨, 캐릭터 통합 관리 마스터 코드
+// ==========================================
 
-    function updateGameCharacter() {
-        const charImg = document.getElementById('game-char-img');
-        if (!charImg) return;
-
-        const charId = userData.char || 'default';
-        const charData = CHARACTER_DB[charId];
+// 1. 스킨 및 UI 색상 동적 적용 함수
+function applySkin(skinId = userData.currentSkin || 'default') {
+    const skin = SKIN_DB[skinId];
+    if (!skin) return;
+    
+    userData.currentSkin = skinId;
+    saveData();
+    
+    // 전체 웹페이지 배경색 변경
+    document.body.style.background = skin.bg;
+    
+    // 상점 레이아웃 구조 변경 (스킨은 4열 격자, 캐릭터/아이템은 세로 리스트)
+    const shopList = document.getElementById('shop-list');
+    if (shopList) {
+        const currentTab = document.querySelector('.tab-btn.active');
+        const tabType = currentTab ? currentTab.getAttribute('onclick').match(/'([^']+)'/)[1] : 'item';
         
-        if (charData) {
-            charImg.src = charData.img;
+        if (tabType === 'skin') {
+            shopList.style.display = 'grid';
+            shopList.style.gridTemplateColumns = 'repeat(4, 1fr)';
+            shopList.style.gap = '6px';
+        } else {
+            shopList.style.display = 'flex';
+            shopList.style.flexDirection = 'column';
+            shopList.style.gap = '8px';
         }
     }
+}
 
-    function renderShop(type = 'item') {
+// 2. 상점 화면 렌더링 (스킨 버튼 디자인 리뉴얼 버전)
+function renderShop(type = 'item', btnElement = null) {
     const shopList = document.getElementById('shop-list');
+    const shopContainer = document.querySelector('.shop-container');
     if (!shopList) return;
 
-    let html = '';
+    // 상점 내부 스크롤 및 화면 늘어남 방지 구조 고정
+    if (shopContainer) {
+        shopContainer.style.maxHeight = '80vh';
+        shopContainer.style.display = 'flex';
+        shopContainer.style.flexDirection = 'column';
+    }
     
-    // 캐릭터 탭
-    if (type === 'char') {
-        html = `<h4>캐릭터 상점</h4>`;
+    shopList.style.maxHeight = 'calc(80vh - 120px)';
+    shopList.style.overflowY = 'auto';
+    shopList.style.webkitOverflowScrolling = 'touch';
+    shopList.style.padding = '8px 4px';
+
+    // 탭 버튼 활성화 교체
+    if (btnElement) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+    }
+
+    // 예외 처리 안정화
+    if (!userData.ownedChars) userData.ownedChars = ['default'];
+    if (!userData.ownedSkins) userData.ownedSkins = ['default'];
+    if (!userData.inventory) userData.inventory = { hint: 0, skip: 0 };
+
+    let html = '';
+
+    // ─── [1] 아이템 탭 (가로 리스트) ───
+    if (type === 'item') {
+        shopList.style.display = 'flex';
+        shopList.style.flexDirection = 'column';
+        shopList.style.gap = '8px';
+
+        html += `
+        <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; width:100%; box-sizing:border-box; justify-content:space-between; text-align:left;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:2rem; line-height:1;">💡</span>
+                <div>
+                    <div style="font-weight:bold; font-size:1rem; color:#222;">힌트 (보유: ${userData.inventory.hint}개)</div>
+                    <div style="font-size:0.75rem; color:#666;">단어의 위치를 은은하게 표시</div>
+                </div>
+            </div>
+            <button onclick="buyItem('hint', 100)" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; flex-shrink:0;">100G</button>
+        </div>
+        <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; width:100%; box-sizing:border-box; justify-content:space-between; text-align:left;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:2rem; line-height:1;">🎫</span>
+                <div>
+                    <div style="font-weight:bold; font-size:1rem; color:#222;">스킵 (보유: ${userData.inventory.skip}개)</div>
+                    <div style="font-size:0.75rem; color:#666;">현재 스테이지를 즉시 패스</div>
+                </div>
+            </div>
+            <button onclick="buyItem('skip', 500)" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; flex-shrink:0;">500G</button>
+        </div>`;
+    } 
+    // ─── [2] 캐릭터 탭 (가로 리스트) ───
+    else if (type === 'char') {
+        shopList.style.display = 'flex';
+        shopList.style.flexDirection = 'column';
+        shopList.style.gap = '8px';
+
         for (let id in CHARACTER_DB) {
             let char = CHARACTER_DB[id];
             let isOwned = userData.ownedChars.includes(id);
+            let isEquipped = userData.char === id;
+
             html += `
-                <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 1.5rem;">${char.emoji}</span>
-                    <span>${char.name}</span>
+            <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; width:100%; box-sizing:border-box; justify-content:space-between; text-align:left;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:2.2rem; width:40px; text-align:center; line-height:1; flex-shrink:0;">${char.emoji}</span>
+                    <span style="font-weight:bold; font-size:1rem; color:#222;">${char.name}</span>
+                </div>
+                <div style="flex-shrink:0;">
                     ${isOwned ? 
-                        `<button onclick="equipChar('${id}')">${userData.char === id ? '장착중' : '장착'}</button>` : 
-                        `<button onclick="buyChar('${id}')">${char.price}G 구매</button>`}
-                </div>`;
+                        `<button onclick="equipChar('${id}')" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; background:${isEquipped ? '#95a5a6' : 'var(--green)'}; color:white; border:none; cursor:pointer;">${isEquipped ? '장착중' : '장착'}</button>` : 
+                        `<button onclick="buyChar('${id}')" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; background:var(--gold); color:white; border:none; cursor:pointer;">${char.price}G</button>`}
+                </div>
+            </div>`;
         }
     } 
-    // 아이템 탭
-    else if (type === 'item') {
-        html = `<h4>아이템 상점</h4>
-                <div style="padding: 10px;">
-                    <p>힌트(보유: ${userData.inventory.hint}) <button onclick="buyItem('hint', 100)">100G 구매</button></p>
-                    <p>스킵(보유: ${userData.inventory.skip}) <button onclick="buyItem('skip', 200)">200G 구매</button></p>
-                </div>`;
-    } 
-    // 스킨 탭
-    else {
-        html = `<h4>스킨 상점</h4><p>준비 중입니다.</p>`;
+    // ─── [3] 스킨 탭 (✨ 요청하신 이미지 스타일 리뉴얼 격자) ───
+    else if (type === 'skin') {
+        shopList.style.display = 'grid';
+        shopList.style.gridTemplateColumns = 'repeat(4, 1fr)';
+        shopList.style.gap = '8px';
+
+        for (let id in SKIN_DB) {
+            let s = SKIN_DB[id];
+            let isOwned = userData.ownedSkins ? userData.ownedSkins.includes(id) : (id === 'default');
+            let isEquipped = userData.currentSkin === id;
+
+            // 버튼 내부 디자인 분기 처리
+            let buttonHTML = '';
+            if (isEquipped) {
+                // 장착중 상태 버튼 (차분한 그레이 + 체크마크)
+                buttonHTML = `
+                    <button onclick="applySkin('${id}'); renderShop('skin');" style="width:100%; padding:5px 0; margin:0; border-radius:20px; font-size:0.75rem; font-weight:bold; background:#7f8c8d; color:white; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:2px;">
+                        적용중 <span style="font-size:0.65rem;">✓</span>
+                    </button>`;
+            } else if (isOwned) {
+                // 보유중 상태 버튼 (화사한 초록색 패널)
+                buttonHTML = `
+                    <button onclick="applySkin('${id}'); renderShop('skin');" style="width:100%; padding:5px 0; margin:0; border-radius:20px; font-size:0.75rem; font-weight:bold; background:#2ecc71; color:white; border:none; cursor:pointer; box-shadow:0 2px 4px rgba(46,204,113,0.3);">
+                        적용
+                    </button>`;
+            } else {
+                // 미보유 상점 판매 상태 버튼 (🪙 코인 아이콘 + 가격 구조화)
+                buttonHTML = `
+                    <button onclick="buySkin('${id}')" style="width:100%; padding:5px 0; margin:0; border-radius:20px; font-size:0.72rem; font-weight:bold; background:#f1c40f; color:#333; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:2px; box-shadow:0 2px 4px rgba(241,196,15,0.3);">
+                        <span style="font-size:0.75rem;">🪙</span>${s.price}
+                    </button>`;
+            }
+
+            html += `
+            <div class="shop-card" style="background:#ffffff; border:1px solid #e0e0e0; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:10px 6px; border-radius:12px; box-sizing:border-box; min-height:115px; box-shadow:0 3px 6px rgba(0,0,0,0.03);">
+                <div style="width:38px; height:38px; border-radius:50%; background:${s.card}; border:3px solid ${s.bg}; box-shadow:inset 0 0 4px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.1); flex-shrink:0; margin-bottom:4px;"></div>
+                
+                <div style="font-weight:bold; font-size:0.75rem; color:#444; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; margin-bottom:8px;">${s.name}</div>
+                
+                <div style="width:100%; margin-top:auto;">
+                    ${buttonHTML}
+                </div>
+            </div>`;
+        }
     }
-    
+
     shopList.innerHTML = html;
 }
 
-// 아이템 구매 로직 예시
-function buyItem(type, price) {
-    if (userData.gold >= price) {
-        userData.gold -= price;
-        userData.inventory[type]++;
+
+// 3. 캐릭터 구매 및 장착 로직
+function buyChar(id) {
+    const char = CHARACTER_DB[id];
+    if (userData.gold >= char.price) {
+        userData.gold -= char.price;
+        userData.ownedChars.push(id);
         saveData();
         updateUI();
-        renderShop('item'); // 아이템 탭 유지하며 새로고침
-        alert("구매 완료!");
+        document.getElementById('shop-gold').innerText = userData.gold;
+        renderShop('char'); 
+        showToast(char.name + " 구매 완료! 🎉");
     } else {
-        alert("골드가 부족합니다!");
+        showToast("❌ 골드가 부족합니다!");
     }
 }
+
+function equipChar(id) {
+    userData.char = id;
+    saveData();
+    updateGameCharacter();
+    renderShop('char');
+    showToast("캐릭터 장착 완료! 😉");
+}
+
+
+function updateGameCharacter() {
+    const charSpan = document.getElementById('game-char-emoji');
+    if (charSpan) {
+        const charId = userData.char || 'default';
+        const charData = CHARACTER_DB[charId];
+        if (charData) charSpan.innerText = charData.emoji;
+    }
+}
+
+// 4. 스킨 구매 로직
+function buySkin(id) {
+    const skin = SKIN_DB[id];
+    if (userData.gold >= skin.price) {
+        userData.gold -= skin.price;
+        if (!userData.ownedSkins) userData.ownedSkins = ['default'];
+        userData.ownedSkins.push(id);
+        saveData();
+        updateUI();
+        document.getElementById('shop-gold').innerText = userData.gold;
+        renderShop('skin');
+        showToast(skin.name + " 스킨 구매 완료! 🎨");
+    } else {
+        showToast("❌ 골드가 부족합니다!");
+    }
+}
+
+// 5. 아이템 구매 로직
+function buyItem(type, price) {
+    if (userData.gold < price) {
+        showToast("❌ 골드가 부족합니다!");
+        return;
+    }
+    userData.gold -= price;
+    if (!userData.inventory) userData.inventory = { hint: 0, skip: 0 };
+    
+    userData.inventory[type]++;
+    saveData();
+    updateUI();
+    document.getElementById('shop-gold').innerText = userData.gold;
+    renderShop('item');
+    showToast((type === 'hint' ? "💡 힌트" : "🎫 스킵") + " 아이템을 구매했습니다.");
+}
+
+
+// 페이지 로드 시 캐릭터 이모지 최초 초기화
+window.addEventListener('load', () => {
+    updateGameCharacter();
+});
+
 </script>
 </body>
 </html>
