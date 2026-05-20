@@ -145,7 +145,30 @@
             color: white;
         }
    
-   
+   .achieve-item {
+    background: #fdfdfd;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    }
+    .achieve-info { display: flex; flex-direction: column; gap: 2px; }
+    .achieve-title { font-weight: bold; font-size: 0.95rem; color: #222; }
+    .achieve-desc { font-size: 0.75rem; color: #7f8c8d; }
+    .achieve-reward { font-size: 0.8rem; color: var(--gold); font-weight: bold; }
+    .achieve-btn { width: 75px !important; padding: 6px 0 !important; margin: 0 !important; font-size: 0.8rem !important; border-radius: 8px !important; }
+    .daily-box {
+        background: #f9f9f9;
+        border: 2px dashed var(--green);
+        border-radius: 15px;
+        padding: 15px;
+        margin: 15px 0;
+        text-align: center;
+    }
    
    </style>
 </head>
@@ -163,12 +186,18 @@
     <div id="lobby-overlay" class="overlay" style="display:none; background: rgba(255,255,255,0.9);">
         <div class="pop-box" style="box-shadow: none; border: 2px solid var(--green);">
             <h2 style="color:var(--green); margin-top: 0;">🏠 메인 로비</h2>
-            <div id="lobby-character" style="text-align: center; margin: 20px 0; font-size: 5rem;">
+            
+            <div id="daily-reward-banner" class="daily-box" style="display:none;">
+                <span style="font-size: 1.5rem;">🎁</span> <b style="color:var(--green);">오늘의 보상이 도착했습니다!</b>
+                <button onclick="claimDailyReward()" style="margin-top:8px; padding:6px; font-size:0.9rem;">100G 받기</button>
+            </div>
+
+            <div id="lobby-character" style="text-align: center; margin: 15px 0; font-size: 5rem;">
                 <span id="game-char-emoji">😉</span>
             </div>
             <p>환영합니다, <b id="lobby-nick" style="color:var(--selected);">닉네임</b>님!</p>
             
-            <div style="background: #f1f2f6; padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+            <div style="background: #f1f2f6; padding: 15px; border-radius: 15px; margin-bottom: 15px;">
                 <div style="font-size: 1.2rem; font-weight: bold; color: #333;">
                     💰 보유 골드: <span id="lobby-gold" style="color:var(--gold);">0</span> G
                 </div>
@@ -177,20 +206,33 @@
                 </div>
             </div>
 
-            <div class="lobby-btn-grid">
-                <button class="lobby-btn" style="background:#70c6ff;" onclick="openModal('vocab-modal')">
-                    <span style="font-size: 2rem;">📖</span> 단어장
+            <div class="lobby-btn-grid" style="grid-template-columns: 1fr 1fr 1fr; font-size:0.9rem;">
+                <button class="lobby-btn" style="background:#70c6ff; padding:12px 5px;" onclick="openModal('vocab-modal')">
+                    <span style="font-size: 1.5rem;">📖</span> 단어장
                 </button>
-                <button class="lobby-btn" style="background:#ff6453;" onclick="openModal('note-modal')">
-                    <span style="font-size: 2rem;">📝</span> 오답노트
+                <button class="lobby-btn" style="background:#ff6453; padding:12px 5px;" onclick="openModal('note-modal')">
+                    <span style="font-size: 1.5rem;">📝</span> 오답노트
                 </button>
-                <button class="lobby-btn" style="background:#ffb53f;" onclick="openModal('shop-modal')">
-                    <span style="font-size: 2rem;">🛒</span> 아이템 상점
-                </button>
-                <button class="lobby-btn" style="background:var(--green);" onclick="enterGame()">
-                    <span style="font-size: 2rem;">🎮</span> 게임 시작
+                <button class="lobby-btn" style="background:#ffb53f; padding:12px 5px;" onclick="openModal('shop-modal')">
+                    <span style="font-size: 1.5rem;">🛒</span> 상점
                 </button>
             </div>
+            
+            <button class="lobby-btn" style="background:#9b59b6; margin-top:10px; flex-direction:row; justify-content:center; padding:12px;" onclick="openModal('achieve-modal')">
+                <span>🏆 도전과제 (업적)</span>
+            </button>
+            <button class="lobby-btn" style="background:var(--green); margin-top:8px; flex-direction:row; justify-content:center; padding:15px; font-size:1.3rem;" onclick="enterGame()">
+                <span>🎮 게임 시작</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="achieve-modal" class="overlay" style="display:none; background: rgba(0,0,0,0.7); z-index: 2000;">
+        <div class="pop-box">
+            <h2 style="margin-top:0; color:#9b59b6;">🏆 도전과제</h2>
+            <p style="font-size:0.8rem; color:#666; margin-bottom: 12px;">게임 보상으로 보너스 골드를 획득하세요!</p>
+            <div id="achieve-list" style="max-height: 350px; overflow-y: auto;"></div>
+            <button class="close-btn" onclick="closeModal('achieve-modal')">닫기</button>
         </div>
     </div>
 
@@ -1933,6 +1975,135 @@ let currentStageCount = {};
 let isProcessingMove = false; 
 let currentStageWrongWordsList = []; 
 
+// 🔊 [1] 웹 오디오 API를 이용한 효과음 시스템 (별도 mp3 파일 다운로드 필요 없음!)
+const sfx = {
+    ctx: null,
+    init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+    play(type) {
+        this.init();
+        const ctx = this.ctx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+        if (type === 'click') { // 카드를 고를 때 (톡!)
+            osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if (type === 'match') { // 정답을 맞췄을 때 (샤라랑)
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); // 도
+            osc.frequency.setValueAtTime(659.25, now + 0.08, now + 0.08); // 미
+            osc.frequency.setValueAtTime(783.99, now + 0.16, now + 0.16); // 솔
+            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'wrong') { // 틀렸을 때 (띠-익 부저음)
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, now);
+            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            osc.start(now); osc.stop(now + 0.25);
+        } else if (type === 'clear') { // 스테이지 클리어 승리음
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(783.99, now + 0.15);
+            osc.frequency.setValueAtTime(1046.50, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            osc.start(now); osc.stop(now + 0.6);
+        }
+    }
+};
+
+// 🏆 [2] 도전과제(업적) 마스터 데이터베이스
+const ACHIEVEMENT_DB = {
+    stage_5: { title: "솔리테어 유망주 🔰", desc: "5 스테이지 달성하기", reward: 200, check: () => userData.highScoreStage >= 5 },
+    stage_10: { title: "단어 정복자 ⚔️", desc: "10 스테이지 달성하기", reward: 500, check: () => userData.highScoreStage >= 10 },
+    gold_mega: { title: "황금의 손 🪙", desc: "누적 보유 골드 1,000G 돌파", reward: 300, check: () => userData.gold >= 1000 },
+    all_skins: { title: "패션 마스터 🎨", desc: "스킨 2개 이상 보유하기", reward: 400, check: () => (userData.ownedSkins && userData.ownedSkins.length >= 2) }
+};
+
+// 🎁 [3] 일일 출석체크 확인 처리 함수
+function checkDailyReward() {
+    const today = new Date().toDateString();
+    const banner = document.getElementById('daily-reward-banner');
+    if (userData.lastDailyClaim !== today) {
+        if(banner) banner.style.display = 'block';
+    } else {
+        if(banner) banner.style.display = 'none';
+    }
+}
+
+function claimDailyReward() {
+    userData.gold += 100;
+    userData.lastDailyClaim = new Date().toDateString();
+    saveData();
+    
+    // 🔊 보상 획득 성공 효과음 재생
+    if (typeof sfx !== 'undefined' && sfx.play) {
+        sfx.play('clear');
+    }
+    
+    // 🎁 [핵심 수정] 보상을 받자마자 로비의 일일 보상 배너를 즉시 화면에서 숨김
+    const banner = document.getElementById('daily-reward-banner');
+    if (banner) {
+        banner.style.display = 'none';
+    }
+    
+    // UI 갱신 및 유저에게 알림
+    updateUI();
+    if (document.getElementById('lobby-gold')) {
+        document.getElementById('lobby-gold').innerText = userData.gold;
+    }
+    
+    showToast("🎁 일일 출석 보상 100G가 지급되었습니다!");
+}
+
+// 🏆 [4] 업적 팝업창 화면 렌더링 함수
+function renderAchievements() {
+    const listDiv = document.getElementById('achieve-list');
+    if (!listDiv) return;
+    if (!userData.claimedAchievements) userData.claimedAchievements = [];
+
+    let html = '';
+    for (let id in ACHIEVEMENT_DB) {
+        const ach = ACHIEVEMENT_DB[id];
+        const isCompleted = ach.check();
+        const isClaimed = userData.claimedAchievements.includes(id);
+
+        let btnHTML = '';
+        if (isClaimed) {
+            btnHTML = `<button class="achieve-btn" style="background:#bdc3c7; color:#fff;" disabled>완료됨</button>`;
+        } else if (isCompleted) {
+            btnHTML = `<button class="achieve-btn" style="background:var(--green); color:#fff;" onclick="claimAchievement('${id}')">보상 받기</button>`;
+        } else {
+            btnHTML = `<button class="achieve-btn" style="background:#eee; color:#aaa;" disabled>진행중</button>`;
+        }
+
+        html += `
+        <div class="achieve-item">
+            <div class="achieve-info">
+                <span class="achieve-title">${ach.title}</span>
+                <span class="achieve-desc">${ach.desc}</span>
+                <span class="achieve-reward">💰 +${ach.reward}G</span>
+            </div>
+            <div>${btnHTML}</div>
+        </div>`;
+    }
+    listDiv.innerHTML = html || '<p>도전과제가 없습니다.</p>';
+}
+
+function claimAchievement(id) {
+    if (userData.claimedAchievements.includes(id)) return;
+    const ach = ACHIEVEMENT_DB[id];
+    userData.gold += ach.reward;
+    userData.claimedAchievements.push(id);
+    saveData();
+    sfx.play('clear');
+    showToast(`🏆 [${ach.title}] 달성! ${ach.reward}G 보상 획득!`);
+    renderAchievements();
+    document.getElementById('lobby-gold').innerText = userData.gold;
+}
+
+
 const CHARACTER_DB = {
     'default': { name: '기본 학생', emoji: '😉', price: 0 },
     'cat': { name: '고양이', emoji: '🐱', price: 1000 },
@@ -2023,6 +2194,13 @@ function loginAndGoToLobby() {
     applySkin(userData.currentSkin); 
     
     goToLobby();
+
+    // goToLobby() 함수 맨 아래 닫히기 직전에 추가해 주세요
+    if (!userData.wrongWords) userData.wrongWords = [];
+    checkDailyReward();
+    if (!userData.highScoreStage || userData.stage > userData.highScoreStage) {
+        userData.highScoreStage = userData.stage;
+}
 }
 
 
@@ -2122,6 +2300,12 @@ function openModal(id) {
     if (id === 'note-modal') {
         renderWrongNote();
     }
+
+    // openModal(id) 함수 안에 if (id === 'note-modal') { ... } 블록 밑에 삽입
+    if (id === 'achieve-modal') {
+        renderAchievements();
+    }
+
     // openModal 함수 내 shop-modal 부분
     if (id === 'shop-modal') {
         document.getElementById('shop-gold').innerText = userData.gold;
@@ -2650,7 +2834,9 @@ function handleWrongAnswer() {
             if (!userData.wrongWords.some(w => w.k === data.k)) userData.wrongWords.push(data);
         } catch(e) {}
     }
-    
+
+    sfx.play('wrong');
+
     updateUI();
     saveData();
     showToast("틀렸습니다! 😢 에너지 -10");
