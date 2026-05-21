@@ -153,8 +153,107 @@
             background: var(--green);
             color: white;
         }
-   
-   
+        
+        #live-combo {
+            display: none;
+        }
+
+        .score-panel{
+        display:flex;
+        flex-direction:column;
+
+        align-items:center;
+
+        gap:8px;
+
+        margin-top:5px;
+        }
+        @keyframes comboBurst {
+
+    0%{
+        transform:scale(1);
+    }
+
+    30%{
+        transform:scale(1.25);
+    }
+
+    50%{
+        transform:scale(0.95);
+    }
+
+    70%{
+        transform:scale(1.1);
+    }
+
+    100%{
+        transform:scale(1);
+    }
+}
+
+.combo-burst{
+    animation: comboBurst 0.5s ease;
+}
+
+.combo-bonus-popup{
+
+    position:fixed;
+
+    top:140px;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    background:linear-gradient(
+        135deg,
+        #ffe681,
+        #ffb347
+    );
+
+    color:#222;
+
+    font-weight:900;
+
+    font-size:1.4rem;
+
+    padding:10px 20px;
+
+    border-radius:999px;
+
+    z-index:9999;
+
+    animation:comboPopup 1s ease forwards;
+
+    box-shadow:0 6px 20px rgba(0,0,0,0.25);
+}
+
+@keyframes comboPopup{
+
+    0%{
+        opacity:0;
+        transform:
+        translateX(-50%)
+        translateY(20px)
+        scale(0.8);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+        translateX(-50%)
+        translateY(0)
+        scale(1.15);
+    }
+
+    100%{
+        opacity:0;
+        transform:
+        translateX(-50%)
+        translateY(-30px)
+        scale(1);
+    }
+}
+
    
    </style>
 </head>
@@ -302,10 +401,23 @@
 
             <div class="stage-display" style="margin-top: 35px;">STAGE <span id="st-num">1</span></div>
             
-            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin: 5px 0;">
+            <div class="score-panel">
                 <div class="score-display"><span id="score">0</span></div>
-                <div id="live-combo" style="color: #353535; background: #ffe681; font-weight: bold; font-size: 0.9rem; padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); display: none; inline-size: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">0 콤보 🔥</div>
-            </div>
+                <div id="live-combo"
+                style="
+                color: #353535;
+                background: #ffe681;
+                font-weight: bold;
+                font-size: 0.9rem;
+                padding: 4px 12px;
+                border-radius: 20px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+                ">
+                0 콤보 🔥
+                </div>
             
             <div style="color: white; font-weight: bold; font-size: 1.1rem; margin-top: -5px; margin-bottom: 5px; text-shadow: none;">
                 👑 최고 기록: <span id="high-score">0</span>점
@@ -2507,24 +2619,42 @@ function initStage() {
     }
 
     stageTopics.forEach(cat => {
-        let finalCatWords = topicWordsMap[cat] || [];
-        if (finalCatWords.length === 0) finalCatWords = levelPool.filter(w => w.cat === cat).slice(0, 5);
 
-        let count = finalCatWords.length;
-        currentStageTotals[cat] = count;
-        currentStageCount[cat] = 0;
+    let finalCatWords =
+        levelPool
+            .filter(w => w.cat === cat)
+            .sort(() => Math.random() - 0.5)
+            .slice(
+                0,
+                Math.floor(Math.random() * 8) + 5
+            );
 
-        for (let i = 0; i < count; i++) cards.push(finalCatWords[i]);
+    let count = finalCatWords.length;
 
-        if (tArea) {
-            const slot = document.createElement('div');
-            slot.className = 'target-slot';
-            slot.innerHTML = `<div class="slot-label">${cat}</div><div class="slot-count" id="count-${cat}">0 / ${count}</div>`;
-            slot.onpointerdown = () => handleMove(cat, slot);
-            tArea.appendChild(slot);
-        }
-    });
+    currentStageTotals[cat] = count;
+    currentStageCount[cat] = 0;
 
+    for (let i = 0; i < count; i++) {
+        cards.push(finalCatWords[i]);
+    }
+
+    if (tArea) {
+
+        const slot = document.createElement('div');
+
+        slot.className = 'target-slot';
+
+        slot.innerHTML =
+        `<div class="slot-label">${cat}</div>
+        <div class="slot-count" id="count-${cat}">
+        0 / ${count}
+        </div>`;
+
+        slot.onpointerdown = () => handleMove(cat, slot);
+
+        tArea.appendChild(slot);
+    }
+});
     cards.sort(() => Math.random() - 0.5);
     
     cards.forEach((d, idx) => {
@@ -2583,10 +2713,24 @@ function handleMove(cat, slot) {
             userData.gold += earnedScore;
 
             const comboEl = document.getElementById('live-combo');
+
             if (comboEl) {
-                if (comboBonus > 0) comboEl.innerText = `🔥 ${currentCombo} COMBO 달성! 보너스 +${comboBonus}점!`;
-                else comboEl.innerText = `${currentCombo} COMBO! (+${baseScore}점)`;
+
                 comboEl.style.display = 'inline-flex';
+
+                comboEl.innerText =
+                `🔥 ${currentCombo} COMBO`;
+
+                if (comboBonus > 0) {
+
+                    comboEl.classList.remove('combo-burst');
+
+                    void comboEl.offsetWidth;
+
+                    comboEl.classList.add('combo-burst');
+
+                    showComboBonus(comboBonus);
+                }
             }
 
             const previousColumn = selectedCard.parentElement;
@@ -2638,6 +2782,22 @@ function handleMove(cat, slot) {
 
     } catch (error) { console.error(error); isProcessingMove = false; }
 }
+
+function showComboBonus(bonus){
+
+    const popup = document.createElement('div');
+
+    popup.className = 'combo-bonus-popup';
+
+    popup.innerText = `✨ BONUS +${bonus}!`;
+
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        popup.remove();
+    }, 1000);
+}
+
 
 function realignColumn(col) {
     const cards = col.querySelectorAll('.card');
