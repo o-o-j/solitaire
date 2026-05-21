@@ -2123,26 +2123,56 @@ function showToast(msg) {
 }
 
 function loginAndGoToLobby() {
-    const input = document.getElementById('nick').value.trim();
-    if (!input) { alert("닉네임을 입력해 주세요!"); return; }
-    nick = input;
-    
-    const saved = localStorage.getItem('solitaire_' + nick);
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            userData = { ...userData, ...parsed };
-            if(!userData.inventory) userData.inventory = { hint: 0, skip: 0 };
-            if(!userData.currentSkin) userData.currentSkin = "default";
-        } catch(e) { console.error(e); }
-    } else {
-        userData.nick = nick;
-        userData.currentSkin = "default"; // 신규 유저는 기본 스킨 설정
+
+    const input =
+    document.getElementById('nick').value.trim();
+
+    if (!input) {
+        alert("닉네임을 입력해 주세요!");
+        return;
     }
-    
-    // 수정: 저장된 스킨 ID를 가져와서 적용
-    applySkin(userData.currentSkin); 
-    
+
+    nick = input;
+
+    const saved =
+    localStorage.getItem('solitaire_' + nick);
+
+    if (saved) {
+
+        try {
+
+            const parsed = JSON.parse(saved);
+
+            userData = {
+                ...userData,
+                ...parsed
+            };
+
+            if(!userData.inventory){
+                userData.inventory = {
+                    hint: 0,
+                    skip: 0
+                };
+            }
+
+            if(!userData.char){
+                userData.char = "default";
+            }
+
+        } catch(e) {
+
+            console.error(e);
+        }
+
+    } else {
+
+        userData.nick = nick;
+
+        userData.char = "default";
+    }
+
+    updateGameCharacter();
+
     goToLobby();
 }
 
