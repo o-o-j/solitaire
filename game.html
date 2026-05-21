@@ -1,0 +1,3047 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>일본어 솔리테어🃏</title>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#89d358">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="일본어 솔리테어">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        :root { 
+            --bg: #89d358;           
+            --energy-bg: #d1efbd;    
+            --card: #ffffff; 
+            --accent: #f1c40f; 
+            --green: #2ecc71; 
+            --red: #ff4757; 
+            --gold: #ffae00; 
+            --selected: #3498db; 
+        }
+
+        body { 
+            background: var(--bg); margin: 0; padding: 10px; font-family: sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            user-select: none; touch-action: manipulation; color: #333; overflow-x: hidden;
+            transition: background 0.5s ease;
+        }
+        
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1500; display: flex; align-items: center; justify-content: center; transition: background 0.5s ease;}
+        .pop-box { background: white; padding: 25px; border-radius: 25px; text-align: center; width: 85%; max-width: 400px; box-shadow: 0 15px 30px rgba(0,0,0,0.1); max-height: 85vh; overflow-y: auto; }
+        
+        #game-container { display: none; width: 100%; flex-direction: column; align-items: center; }
+
+        .header { width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; gap: 5px; position: relative; }
+        .stage-display { background: var(--accent); color: #333; font-weight: bold; padding: 4px 15px; border-radius: 20px; font-size: 0.85rem; border: 2px solid white; margin-bottom: -5px; z-index: 10; }
+        .score-display { color: white; font-size: 2rem; font-weight: 900; }
+        
+        .energy-container { width: 220px; height: 12px; background: var(--energy-bg); border-radius: 10px; border: 2px solid white; overflow: hidden; }
+        #energy-fill { width: 100%; height: 100%; background: var(--green); transition: width 0.4s ease; }
+
+        .target-area { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 800px; }
+        .target-slot { width: 105px; height: 110px; background: rgba(255,255,255,0.3); border: 2px dashed white; border-radius: 12px; position: relative; flex-shrink: 0; transition: box-shadow 0.3s ease; }
+        .slot-label { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; border: 2px solid white; z-index: 5; white-space: nowrap; }
+        .slot-count { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); color: white; font-size: 0.7rem; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+
+        .tableau { display: flex; gap: 8px; justify-content: center; width: 100%; max-width: 600px; min-height: 460px; margin-top: 15px; flex-wrap: wrap; }
+        .column { width: 18%; min-width: 55px; position: relative; display: flex; flex-direction: column; align-items: center; }
+        
+        .card { 
+            width: 55px;
+            height: 80px;
+            background: var(--card-color, #ffffff);
+
+            border-radius: 8px;
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+            transition: transform 0.1s;
+            z-index: 10;
+            cursor: pointer;
+
+            color: var(--text-color, #333);
+        }
+
+
+        /* 어두운 테마용 클래스를 정의하여 관리 */
+        .dark-theme .card {
+        color: #ffffff;
+         }
+        
+        
+        .card.selected { border: 3px solid var(--selected) !important; transform: translateY(-5px) scale(1.05); z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        .k-txt { font-size: 0.9rem; font-weight: bold; pointer-events: none; text-align: center; line-height: 1.1; padding: 0 2px;}
+        .h-txt { font-size: 0.6rem; font-weight: bold; color: #2980b9; pointer-events: none; text-align: center; margin-top: 2px; }
+        .r-txt { font-size: 0.5rem; color: #7f8c8d; pointer-events: none; text-align: center; margin-top: 2px; }
+        
+        .target-slot .card { position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) scale(0.9) !important; border: 2px solid var(--gold); }
+        .card-emoji { font-size: 1.8rem; pointer-events: none; }
+        .card-mean { font-size: 0.7rem; font-weight: bold; color: #2ecc71; margin-top: 2px; pointer-events: none; text-align: center; line-height: 1;}
+
+        button { background: #2ecc71; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; font-size: 1.1rem; margin-top: 10px; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.1);}
+        button:active { transform: translateY(2px); box-shadow: none; }
+        
+        .lobby-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .lobby-btn { padding: 20px 10px; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; gap: 8px; border-radius: 15px; }
+        .close-btn { background: #95a5a6; margin-top: 20px; }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }       
+        .shop-item button { width: auto; margin: 0; padding: 8px 15px; font-size: 0.9rem; }
+
+        .vocab-list, .note-list { text-align: left; max-height: 350px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 10px; border: 1px solid #ddd; }
+        
+        /* 🔊 단어장 아이템 스타일 최적화 */
+        .vocab-item { 
+            border-bottom: 1px dashed #ccc; 
+            padding: 8px 6px; 
+            font-size: 0.9rem; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.15s ease;
+        }
+        .vocab-item:active { background: #e8f4fd; }
+        .vocab-item:last-child { border-bottom: none; }
+
+        #toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; z-index: 3000; transition: 0.3s; pointer-events: none; text-align: center; white-space: pre-wrap; line-height: 1.4; }
+        #toast.show { opacity: 1; }
+
+        @keyframes combo-pop { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+        .combo-active { animation: combo-pop 0.3s ease-out !important; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+        .shake-card { display: inline-block !important; position: relative !important; z-index: 9999 !important; animation: shake 0.4s ease-in-out !important; border: 2px solid var(--red) !important; box-shadow: 0 0 12px rgba(255, 71, 87, 0.6) !important; }
+        /* 상점 모달 스타일 개선 */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .shop-card {
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            background: #fdfdfd;
+            transition: 0.2s;
+        }
+
+        .shop-card:hover { border-color: var(--green); }
+
+        .tab-btn {
+            background: #eee;
+            color: #555;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--green);
+            color: white;
+        }
+   
+   
+   
+   </style>
+</head>
+<body>
+
+    <div id="login-overlay" class="overlay">
+        <div class="pop-box">
+            <h2>일본어 솔리테어🃏</h2>
+            <p style="font-size: 0.85rem; color: #636e72;">닉네임을 입력하면 <b>기록과 오답노트</b>가 저장됩니다!</p>
+            <input type="text" id="nick" placeholder="닉네임 입력" autocomplete="off" style="width:80%; padding:10px; border-radius:8px; border:1px solid #ddd; text-align:center; margin-bottom:12px;">
+            <button onpointerdown="loginAndGoToLobby()">로비 입장</button>
+        </div>
+    </div>
+
+    <div id="lobby-overlay" class="overlay" style="display:none; background: rgba(255,255,255,0.9);">
+        <div class="pop-box" style="box-shadow: none; border: 2px solid var(--green);">
+            <h2 style="color:var(--green); margin-top: 0;">🏠 메인 로비</h2>
+            <div id="lobby-character" style="text-align: center; margin: 20px 0; font-size: 5rem;">
+                <span id="game-char-emoji">😉</span>
+            </div>
+            <p>환영합니다, <b id="lobby-nick" style="color:var(--selected);">닉네임</b>님!</p>
+            
+            <div style="background: #f1f2f6; padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+                <div style="font-size: 1.2rem; font-weight: bold; color: #333;">
+                    💰 보유 골드: <span id="lobby-gold" style="color:var(--gold);">0</span> G
+                </div>
+                <div style="font-size: 0.9rem; color: #555; margin-top: 5px;">
+                    최고 기록: <span id="lobby-highscore">0</span>점 | 현재 스테이지: <span id="lobby-stage">1</span>
+                </div>
+            </div>
+
+            <div class="lobby-btn-grid">
+                <button class="lobby-btn" style="background:#70c6ff;" onclick="openModal('vocab-modal')">
+                    <span style="font-size: 2rem;">📖</span> 단어장
+                </button>
+                <button class="lobby-btn" style="background:#ff6453;" onclick="openModal('note-modal')">
+                    <span style="font-size: 2rem;">📝</span> 오답노트
+                </button>
+                <button class="lobby-btn" style="background:#ffb53f;" onclick="openModal('shop-modal')">
+                    <span style="font-size: 2rem;">🛒</span> 아이템 상점
+                </button>
+                <button class="lobby-btn" style="background:var(--green);" onclick="enterGame()">
+                    <span style="font-size: 2rem;">🎮</span> 게임 시작
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="vocab-modal" class="overlay" style="display:none; background: rgba(0,0,0,0.7); z-index: 2000;">
+        <div class="pop-box">
+            <h2 style="margin-top:0; color:#3498db;">📖 단어장</h2>
+            <p style="font-size:0.8rem; color:#666; margin-bottom: 12px;">주제별 단어를 누르면 <b>일본어 발음</b>이 나옵니다 🔊</p>
+            <div id="full-vocab-list" class="vocab-list"></div>
+            <button class="close-btn" onclick="closeModal('vocab-modal')">닫기</button>
+        </div>
+    </div>
+
+    <div id="note-modal" class="overlay" style="display:none; background: rgba(0,0,0,0.7); z-index: 2000;">
+        <div class="pop-box">
+            <h2 style="margin-top:0; color:#e74c3c;">📝 누적 오답노트</h2>
+            <p style="font-size:0.8rem; color:#666;">틀렸던 단어들을 복습하세요!</p>
+            <div id="wrong-word-list" class="note-list"></div>
+            <button class="close-btn" onclick="closeModal('note-modal')">닫기</button>
+        </div>
+    </div>
+
+    <div id="shop-modal" class="overlay" style="display:none; flex-direction: column;">
+    <div class="modal-content" style="background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 450px;">
+        <h2 style="margin-top:0;">🛒 상점</h2>
+        <div style="font-size: 1.1rem; margin-bottom: 15px;">보유 골드: <b style="color:var(--gold);"><span id="shop-gold">0</span> G</b></div>
+        
+        <div style="display:flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <button class="tab-btn active" onclick="renderShop('item', this)">아이템</button>
+            <button class="tab-btn" onclick="renderShop('skin', this)">스킨</button>
+            <button class="tab-btn" onclick="renderShop('char', this)">캐릭터</button>
+        </div>
+        
+        <div id="shop-list" class="shop-grid">
+            </div>
+        
+        <button onclick="document.getElementById('shop-modal').style.display='none'" style="margin-top: 25px; background:#95a5a6;">닫기</button>
+    </div>
+</div>
+
+
+    <div id="gameover-overlay" class="overlay" style="display:none;">
+        <div class="pop-box" style="max-height: 90vh; overflow-y: auto; width: 90%; max-width: 400px;">
+            <h2 style="color:var(--red); margin-bottom: 20px;">게임 종료!</h2>
+            <p>달성 스테이지: <span id="final-stage-val" style="font-weight:bold; color:var(--accent);">1 스테이지</span></p>
+            <div style="font-size: 2rem; font-weight: bold; margin: 15px 0; color: #333;">
+                <span id="final-score-val">0 점</span>
+            </div>
+            <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px; text-align: left; border: 1px solid #ddd;">
+                <h3 style="margin-top:0; color:var(--red); font-size:16px; border-bottom: 2px solid var(--red); padding-bottom: 5px; margin-bottom: 10px;">✏️ 이번 판 오답 노트</h3>
+                <div id="gameover-wrong-list" style="font-size: 14px; max-height: 150px; overflow-y: auto; line-height: 1.6; color: #444;"></div>
+            </div>
+            <button onpointerdown="goToLobby()" style="background:#95a5a6; margin-bottom:10px;">로비로 돌아가기</button>
+            <button onpointerdown="restartGame()">다시 도전하기</button>
+        </div>
+    </div>
+
+    <div id="clear-overlay" class="overlay" style="display: none; background: rgba(0, 0, 0, 0.7); z-index: 2000;">
+        <div class="pop-box">
+            <h2 id="clear-title" style="margin-top: 0; color: #2ecc71; font-size: 1.6rem;">🎉 STAGE CLEAR!</h2>
+            <div id="clear-stars" style="font-size: 2.2rem; margin: 10px 0; letter-spacing: 4px;">🩷🩷🩷</div>
+            <div id="clear-accuracy" style="font-weight: bold; font-size: 1.1rem; color: #555; margin-bottom: 5px;">정답률: 100%</div>
+            <p id="clear-msg" style="font-size: 1rem; color: #333; font-weight: bold; margin: 10px 0 20px 0; line-height: 1.4;">완벽해요! 최고입니다! 😎</p>
+            
+            <div style="background: #f8f9fa; border-radius: 10px; padding: 12px; margin-bottom: 15px; text-align: left; font-size: 0.95rem; line-height: 1.6;">
+                <div id="clear-score-bonus">💰 스테이지 점수: +500 점</div>
+                <div id="clear-gold-bonus">🪙 획득 골드: +100 골드</div>
+                <div style="color: #e74c3c; font-weight: bold;">🔋 에너지 +20 회복!</div>
+                <div id="clear-current-title" style="color: #3498db; font-weight: bold; margin-top: 5px; border-top: 1px dashed #ddd; padding-top: 5px;">현재 칭호: [일본어 초보 🔰]</div>
+            </div>
+
+            <div id="stage-wrong-container" style="text-align: left; margin-bottom: 20px; display: none;">
+                <h4 style="margin: 0 0 5px 0; font-size: 13px; color: #e74c3c; border-bottom: 1px solid #f5c2c2; padding-bottom: 2px;">⚠️ 이번 스테이지 오답</h4>
+                <div id="stage-wrong-list" style="max-height: 90px; overflow-y: auto; font-size: 12px; color: #555; line-height: 1.5;"></div>
+            </div>
+            
+            <button onpointerdown="proceedToNextStage();">다음 스테이지 ➡️</button>
+            <button onpointerdown="goToLobby();" style="background:#95a5a6; margin-top:10px; padding:8px;">잠시 로비로 🏠</button>
+        </div>
+    </div>
+
+    <div id="toast">메시지</div>
+
+    <div id="game-container">
+        <div class="header">
+            <div id="user-gold-box" style="position: absolute; top: 10px; left: 10px; color: #ffd700; font-weight: bold; font-size: 1rem; background: rgba(0, 0, 0, 0.4); padding: 4px 10px; border-radius: 20px; z-index: 10;">
+                💰 <span id="user-gold">0</span> G
+            </div>
+
+            <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 8px; z-index: 10;">
+                <button onpointerdown="useHintItem()" style="width: auto; margin: 0; padding: 5px 8px; font-size: 1.2rem; background: rgba(255,255,255,0.2); color: white; border: 1px solid white; border-radius: 8px;">
+                    💡 <span id="ui-hint-cnt" style="font-size:0.9rem; font-weight:bold;">0</span>
+                </button>
+                <button onpointerdown="useSkipItem()" style="width: auto; margin: 0; padding: 5px 8px; font-size: 1.2rem; background: rgba(255,255,255,0.2); color: white; border: 1px solid white; border-radius: 8px;">
+                    🎫 <span id="ui-skip-cnt" style="font-size:0.9rem; font-weight:bold;">0</span>
+                </button>
+                <button onpointerdown="if(confirm('진행 상황이 저장됩니다. 로비로 나가시겠습니까?')) goToLobby();" style="width: auto; margin: 0; padding: 5px; font-size: 1.5rem; background: transparent; color: white; border: none; box-shadow:none;">
+                    🏠
+                </button>
+            </div>
+
+            <div class="stage-display" style="margin-top: 35px;">STAGE <span id="st-num">1</span></div>
+            
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin: 5px 0;">
+                <div class="score-display"><span id="score">0</span></div>
+                <div id="live-combo" style="color: #353535; background: #ffe681; font-weight: bold; font-size: 0.9rem; padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); display: none; inline-size: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">0 콤보 🔥</div>
+            </div>
+            
+            <div style="color: white; font-weight: bold; font-size: 1.1rem; margin-top: -5px; margin-bottom: 5px; text-shadow: none;">
+                👑 최고 기록: <span id="high-score">0</span>점
+            </div>
+
+            <div class="energy-container">
+                <div id="energy-fill"></div>
+            </div>
+        </div> 
+
+        <div class="target-area" id="target-area"></div>
+        <div class="tableau" id="tableau"></div>
+    </div>
+
+
+<script>
+// 🎯 [START] 여기에 기존 VOCAB_DB 배열을 그대로 넣어주세요! 
+const VOCAB_DB = [
+{ k: "こんにちは", h: "こんにちは", r: "konnichiwa", m: "안녕하세요", cat: "인사말", lvl: 1 },
+        { k: "おはよう", h: "おはよう", r: "ohayō", m: "안녕(아침 인사)", cat: "인사말", lvl: 1 },
+        { k: "こんばんは", h: "こんばんは", r: "konbanwa", m: "안녕하세요(저녁 인사)", cat: "인사말", lvl: 1 },
+        { k: "さようなら", h: "さようなら", r: "sayōnara", m: "안녕히 가세요", cat: "인사말", lvl: 1 },
+        { k: "ありがとう", h: "ありがとう", r: "arigatō", m: "감사합니다", cat: "인사말", lvl: 1 },
+        { k: "すみません", h: "すみません", r: "sumimasen", m: "실례합니다, 죄송합니다", cat: "인사말", lvl: 1 },
+        { k: "はじめまして", h: "はじめまして", r: "hajimemashite", m: "처음 뵙겠습니다", cat: "인사말", lvl: 1 },
+        { k: "おげんきですか", h: "おげんきですか", r: "ogenki desu ka", m: "잘 지내세요?", cat: "인사말", lvl: 1 },
+        { k: "じゃあね", h: "じゃあね", r: "jā ne", m: "잘 가요", cat: "인사말", lvl: 1 },
+        { k: "おやすみなさい", h: "おやすみなさい", r: "oyasumi nasai", m: "안녕히 주무세요", cat: "인사말", lvl: 1 },
+
+        { k: "ノート", h: "のーと", r: "nōto", m: "노트", cat: "수업시간", lvl: 1 },
+        { k: "鉛筆", h: "えんぴつ", r: "enpitsu", m: "연필", cat: "수업시간", lvl: 1 },
+        { k: "消しゴム", h: "けしごむ", r: "keshigomu", m: "지우개", cat: "수업시간", lvl: 1 },
+        { k: "定規", h: "じょうぎ", r: "jōgi", m: "자", cat: "수업시간", lvl: 1 },
+        { k: "コンパス", h: "こんぱす", r: "konpasu", m: "컴퍼스", cat: "수업시간", lvl: 1 },
+        { k: "電卓", h: "でんたく", r: "dentaku", m: "계산기", cat: "수업시간", lvl: 1 },
+        { k: "分度器", h: "ぶんどき", r: "bundoki", m: "각도기", cat: "수업시간", lvl: 1 },
+        { k: "筆記用具", h: "ひっきようぐ", r: "hikki yōgu", m: "필기구", cat: "수업시간", lvl: 1 },
+        { k: "はさみ", h: "はさみ", r: "hasami", m: "가위", cat: "수업시간", lvl: 1 },
+        { k: "のり", h: "のり", r: "nori", m: "풀(접착제)", cat: "수업시간", lvl: 1 },
+
+        { k: "上", h: "うえ", r: "ue", m: "위", i: "⬆️", cat: "방향", lvl: 1 },
+        { k: "下", h: "した", r: "shita", m: "아래", i: "⬇️", cat: "방향", lvl: 1 },
+        { k: "前", h: "まえ", r: "mae", m: "앞", i: "⏩", cat: "방향", lvl: 1 }, // 직관적인 앞으로 가기 화살표
+        { k: "後ろ", h: "うしろ", r: "ushiro", m: "뒤", i: "⏪", cat: "방향", lvl: 1 }, // 뒤로 가기 화살표
+        { k: "右", h: "みぎ", r: "migi", m: "오른쪽", i: "➡️", cat: "방향", lvl: 1 },
+        { k: "左", h: "ひだり", r: "hidari", m: "왼쪽", i: "⬅️", cat: "방향", lvl: 1 },
+        { k: "北", h: "きた", r: "kita", m: "북쪽", i: "🧭", cat: "방향", lvl: 1 }, // 방위를 뜻하는 나침반
+        { k: "南", h: "みなみ", r: "minami", m: "남쪽", i: "☀️", cat: "방향", lvl: 1 }, // 따뜻한 남쪽 느낌
+        { k: "東", h: "ひがし", r: "higashi", m: "동쪽", i: "🌅", cat: "방향", lvl: 1 }, // 동쪽에서 뜨는 해
+        { k: "西", h: "にし", r: "nishi", m: "서쪽", i: "🌇", cat: "방향", lvl: 1 },  // 서쪽으로 지는 노을
+
+        { k: "一", h: "いち", r: "ichi", m: "1", i: "1️⃣", cat: "숫자", lvl: 1 },
+        { k: "二", h: "に", r: "ni", m: "2", i: "2️⃣", cat: "숫자", lvl: 1 },
+        { k: "三", h: "さん", r: "san", m: "3", i: "3️⃣", cat: "숫자", lvl: 1 },
+        { k: "四", h: "よん", r: "yon", m: "4", i: "4️⃣", cat: "숫자", lvl: 1 },
+        { k: "五", h: "ご", r: "go", m: "5", i: "5️⃣", cat: "숫자", lvl: 1 },
+        { k: "六", h: "ろく", r: "roku", m: "6", i: "6️⃣", cat: "숫자", lvl: 1 },
+        { k: "七", h: "なな", r: "nana", m: "7", i: "7️⃣", cat: "숫자", lvl: 1 },
+        { k: "八", h: "はち", r: "hachi", m: "8", i: "8️⃣", cat: "숫자", lvl: 1 },
+        { k: "九", h: "きゅう", r: "kyū", m: "9", i: "9️⃣", cat: "숫자", lvl: 1 },
+        { k: "十", h: "じゅう", r: "jū", m: "10", i: "🔟", cat: "숫자", lvl: 1 },
+        { k: "十一", h: "じゅういち", r: "jūichi", m: "11", i: "1️⃣1️⃣", cat: "숫자", lvl: 1 },
+        { k: "十二", h: "じゅうに", r: "jūni", m: "12", i: "1️⃣2️⃣", cat: "숫자", lvl: 1 },
+        { k: "二十", h: "にじゅう", r: "nijū", m: "20", i: "2️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "三十", h: "さんじゅう", r: "sanjū", m: "30", i: "3️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "四十", h: "よんじゅう", r: "yonjū", m: "40", i: "4️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "五十", h: "ごじゅう", r: "gojū", m: "50", i: "5️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "六十", h: "ろくじゅう", r: "rokujū", m: "60", i: "6️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "七十", h: "ななじゅう", r: "nanajū", m: "70", i: "7️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "八十", h: "はちじゅう", r: "hachijū", m: "80", i: "8️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "九十", h: "きゅうじゅう", r: "kyūjū", m: "90", i: "9️⃣0️⃣", cat: "숫자", lvl: 1 },
+        { k: "百", h: "ひゃく", r: "hyaku", m: "100", i: "💯", cat: "숫자", lvl: 1 },
+
+        { k: "子年", h: "ねずみどし", r: "nezumi doshi", m: "쥐띠", cat: "띠", lvl: 1 },
+        { k: "丑年", h: "うしどし", r: "ushi doshi", m: "소띠", cat: "띠", lvl: 1 },
+        { k: "寅年", h: "とらどし", r: "tora doshi", m: "호랑이띠", cat: "띠", lvl: 1 },
+        { k: "卯年", h: "うさぎどし", r: "usagi doshi", m: "토끼띠", cat: "띠", lvl: 1 },
+        { k: "辰年", h: "たつどし", r: "tatsu doshi", m: "용띠", cat: "띠", lvl: 1 },
+        { k: "巳年", h: "へびどし", r: "hebi doshi", m: "뱀띠", cat: "띠", lvl: 1 },
+        { k: "午年", h: "うまどし", r: "uma doshi", m: "말띠", cat: "띠", lvl: 1 },
+        { k: "未年", h: "ひつじどし", r: "hitsuji doshi", m: "양띠", cat: "띠", lvl: 1 },
+        { k: "申年", h: "さるどし", r: "saru doshi", m: "원숭이띠", cat: "띠", lvl: 1 },
+        { k: "酉年", h: "とりどし", r: "tori doshi", m: "닭띠", cat: "띠", lvl: 1 },
+        { k: "戌年", h: "いぬどし", r: "inu doshi", m: "개띠", cat: "띠", lvl: 1 },
+        { k: "亥年", h: "いのししどし", r: "inoshishi doshi", m: "돼지띠", cat: "띠", lvl: 1 },
+
+        { k: "赤", h: "あか", r: "aka", m: "빨강", i: "🔴", cat: "색상", lvl: 1 },
+        { k: "青", h: "あお", r: "ao", m: "파랑", i: "🔵", cat: "색상", lvl: 1 },
+        { k: "緑", h: "みどり", r: "midori", m: "초록", i: "🟢", cat: "색상", lvl: 1 },
+        { k: "黄", h: "き", r: "ki", m: "노랑", i: "🟡", cat: "색상", lvl: 1 },
+        { k: "黒", h: "くろ", r: "kuro", m: "검정", i: "⚫", cat: "색상", lvl: 1 },
+        { k: "白", h: "しろ", r: "shiro", m: "하양", i: "⚪", cat: "색상", lvl: 1 },
+        { k: "紫", h: "むらさき", r: "murasaki", m: "보라", i: "🟣", cat: "색상", lvl: 1 },
+        { k: "橙", h: "だいだい", r: "daidai", m: "주황", i: "🟠", cat: "색상", lvl: 1 },
+        { k: "桃色", h: "ももいろ", r: "momoiro", m: "분홍", i: "🌸", cat: "색상", lvl: 1 },
+        { k: "灰色", h: "はいいろ", r: "haiiro", m: "회색", i: "⚙️", cat: "색상", lvl: 1 },
+        { k: "金色", h: "きんいろ", r: "kin'iro", m: "금색", i: "🥇", cat: "색상", lvl: 1 },
+        { k: "銀色", h: "ぎんいろ", r: "gin'iro", m: "은색", i: "🥈", cat: "색상", lvl: 1 },
+        { k: "水色", h: "みずいろ", r: "mizuiro", m: "하늘색", i: "🌊", cat: "색상", lvl: 1 },
+        { k: "藍色", h: "あいいろ", r: "aiiro", m: "남색", i: "🔹", cat: "색상", lvl: 1 },
+        { k: "栗色", h: "くりいろ", r: "kuriiro", m: "밤색", i: "🌰", cat: "색상", lvl: 1 },
+        { k: "黄緑", h: "きみどり", r: "kimidori", m: "연두", i: "🍏", cat: "색상", lvl: 1 },
+        { k: "赤紫", h: "あかむらさき", r: "akamurasaki", m: "자주", i: "🟣", cat: "색상", lvl: 1 },
+        { k: "水晶色", h: "すいしょういろ", r: "suishōiro", m: "투명색", i: "💎", cat: "색상", lvl: 1 },
+        { k: "空色", h: "そらいろ", r: "sorairo", m: "하늘색", i: "☁️", cat: "색상", lvl: 1 },
+        { k: "藤色", h: "ふじいろ", r: "fuji iro", m: "연보라", i: "🔮", cat: "색상", lvl: 1 },
+
+        { k: "鉛筆", h: "えんぴつ", r: "enpitsu", m: "연필", cat: "학용품", lvl: 1 },
+        { k: "消しゴム", h: "けしごむ", r: "keshigomu", m: "지우개", cat: "학용품", lvl: 1 },
+        { k: "定規", h: "じょうぎ", r: "jōgi", m: "자", cat: "학용품", lvl: 1 },
+        { k: "シャープペンシル", h: "しゃーぷぺんしる", r: "shāpupenshiru", m: "샤프펜슬", cat: "학용품", lvl: 1 },
+        { k: "色鉛筆", h: "いろえんぴつ", r: "iroenpitsu", m: "색연필", cat: "학용품", lvl: 1 },
+        { k: "ペン", h: "ぺん", r: "pen", m: "펜", cat: "학용품", lvl: 1 },
+        { k: "蛍光ペン", h: "けいこうぺん", r: "keikōpen", m: "형광펜", cat: "학용품", lvl: 1 },
+        { k: "鉛筆削り", h: "えんぴつけずり", r: "enpitsu kezuri", m: "연필깎이", cat: "학용품", lvl: 1 },
+        { k: "ペンケース", h: "ぺんけーす", r: "pen kēsu", m: "필통", cat: "학용품", lvl: 1 },
+        { k: "ノート", h: "のーと", r: "nōto", m: "노트", cat: "학용품", lvl: 1 },
+
+        { k: "ランドセル", h: "らんどせる", r: "randoseru", m: "초등학생 책가방", cat: "등교준비", lvl: 1 },
+        { k: "筆箱", h: "ふでばこ", r: "fudebako", m: "필통", cat: "등교준비", lvl: 1 },
+        { k: "ノート", h: "のーと", r: "nōto", m: "노트", cat: "등교준비", lvl: 1 },
+        { k: "鉛筆", h: "えんぴつ", r: "enpitsu", m: "연필", cat: "등교준비", lvl: 1 },
+        { k: "消しゴム", h: "けしごむ", r: "keshigomu", m: "지우개", cat: "등교준비", lvl: 1 },
+        { k: "教科書", h: "きょうかしょ", r: "kyōkasho", m: "교과서", cat: "등교준비", lvl: 1 },
+        { k: "定規", h: "じょうぎ", r: "jōgi", m: "자", cat: "등교준비", lvl: 1 },
+        { k: "水筒", h: "すいとう", r: "suitō", m: "물통", cat: "등교준비", lvl: 1 },
+        { k: "お弁当", h: "おべんとう", r: "obentō", m: "도시락", cat: "등교준비", lvl: 1 },
+        { k: "上履き", h: "うわばき", r: "uwabaki", m: "실내화", cat: "등교준비", lvl: 1 },
+
+        { k: "父", h: "ちち", r: "chichi", m: "아버지", i: "👨‍🦰", cat: "가족", lvl: 1 },
+        { k: "母", h: "はは", r: "haha", m: "어머니", i: "👩‍🦰", cat: "가족", lvl: 1 },
+        { k: "兄", h: "あに", r: "ani", m: "형", i: "👦", cat: "가족", lvl: 1 },
+        { k: "弟", h: "おとうと", r: "otōto", m: "남동생", i: "👦", cat: "가족", lvl: 1 },
+        { k: "姉", h: "あね", r: "ane", m: "누나", i: "👧", cat: "가족", lvl: 1 },
+        { k: "妹", h: "いもうと", r: "imōto", m: "여동생", i: "👧", cat: "가족", lvl: 1 },
+        { k: "祖父", h: "そふ", r: "sofu", m: "할아버지", i: "👴", cat: "가족", lvl: 1 },
+        { k: "祖母", h: "そぼ", r: "sobo", m: "할머니", i: "👵", cat: "가족", lvl: 1 },
+        { k: "叔父", h: "おじ", r: "oji", m: "삼촌", i: "🧔", cat: "가족", lvl: 1 },
+        { k: "叔母", h: "おば", r: "oba", m: "이모/고모", i: "👩", cat: "가족", lvl: 1 },
+        { k: "甥", h: "おい", r: "oi", m: "조카(남자)", i: "👦", cat: "가족", lvl: 1 },
+        { k: "姪", h: "めい", r: "mei", m: "조카(여자)", i: "👧", cat: "가족", lvl: 1 },
+        { k: "夫", h: "おっと", r: "otto", m: "남편", i: "👨‍💼", cat: "가족", lvl: 1 },
+        { k: "妻", h: "つま", r: "tsuma", m: "아내", i: "👰", cat: "가족", lvl: 1 },
+        { k: "息子", h: "むすこ", r: "musuko", m: "아들", i: "👦", cat: "가족", lvl: 1 },
+        { k: "娘", h: "むすめ", r: "musume", m: "딸", i: "👧", cat: "가족", lvl: 1 },
+        { k: "義父", h: "ぎふ", r: "gifu", m: "시아버지", i: "👴", cat: "가족", lvl: 1 },
+        { k: "義母", h: "ぎぼ", r: "gibo", m: "시어머니", i: "👵", cat: "가족", lvl: 1 },
+        { k: "義兄", h: "ぎけい", r: "gikei", m: "처남/형부", i: "🧑‍🤝‍🧑", cat: "가족", lvl: 1 },
+        { k: "義弟", h: "ぎてい", r: "gitei", m: "처남/서방", i: "🧑‍🤝‍🧑", cat: "가족", lvl: 1 },
+        { k: "義姉", h: "ぎし", r: "gishi", m: "처제/형수", i: "🧑‍🤝‍🧑", cat: "가족", lvl: 1 },
+        { k: "義妹", h: "ぎまい", r: "gimai", m: "처제/올케", i: "🧑‍🤝‍🧑", cat: "가족", lvl: 1 },
+        { k: "孫", h: "まご", r: "mago", m: "손자/손녀", i: "👶", cat: "가족", lvl: 1 },
+        { k: "親戚", h: "しんせき", r: "shinseki", m: "친척", i: "👪", cat: "가족", lvl: 1 },
+        { k: "養子", h: "ようし", r: "yōshi", m: "양자", i: "👶", cat: "가족", lvl: 1 },
+        { k: "婚約者", h: "こんやくしゃ", r: "konyakusha", m: "약혼자", i: "💍", cat: "가족", lvl: 1 },
+        { k: "未亡人", h: "みぼうじん", r: "mibōjin", m: "과부", i: "👰‍♀️", cat: "가족", lvl: 1 },
+        { k: "養母", h: "ようぼ", r: "yōbo", m: "양어머니", i: "👩‍👧", cat: "가족", lvl: 1 },
+        { k: "養父", h: "ようふ", r: "yōfu", m: "양아버지", i: "👨‍👦", cat: "가족", lvl: 1 },
+
+        { k: "数学", h: "すうがく", r: "sūgaku", m: "수학", cat: "과목", lvl: 1 },
+        { k: "理科", h: "りか", r: "rika", m: "과학", cat: "과목", lvl: 1 },
+        { k: "国語", h: "こくご", r: "kokugo", m: "국어", cat: "과목", lvl: 1 },
+        { k: "社会", h: "しゃかい", r: "shakai", m: "사회", cat: "과목", lvl: 1 },
+        { k: "体育", h: "たいいく", r: "taiiku", m: "체육", cat: "과목", lvl: 1 },
+        { k: "音楽", h: "おんがく", r: "ongaku", m: "음악", cat: "과목", lvl: 1 },
+        { k: "美術", h: "びじゅつ", r: "bijutsu", m: "미술", cat: "과목", lvl: 1 },
+        { k: "英語", h: "えいご", r: "eigo", m: "영어", cat: "과목", lvl: 1 },
+        { k: "技術", h: "ぎじゅつ", r: "gijutsu", m: "기술", cat: "과목", lvl: 1 },
+        { k: "道徳", h: "どうとく", r: "dōtoku", m: "도덕", cat: "과목", lvl: 1 },
+
+        { k: "月曜日", h: "げつようび", r: "Getsuyōbi", m: "월요일", cat: "요일", lvl: 1 },
+        { k: "火曜日", h: "かようび", r: "Kayōbi", m: "화요일", cat: "요일", lvl: 1 },
+        { k: "水曜日", h: "すいようび", r: "Suiyōbi", m: "수요일", cat: "요일", lvl: 1 },
+        { k: "木曜日", h: "もくようび", r: "Mokuyōbi", m: "목요일", cat: "요일", lvl: 1 },
+        { k: "金曜日", h: "きんようび", r: "Kinyōbi", m: "금요일", cat: "요일", lvl: 1 },
+        { k: "土曜日", h: "どようび", r: "Doyōbi", m: "토요일", cat: "요일", lvl: 1 },
+        { k: "日曜日", h: "にちようび", r: "Nichiyōbi", m: "일요일", cat: "요일", lvl: 1 },
+
+        { k: "これ", h: "これ", r: "kore", m: "이것", cat: "지시어", lvl: 1 },
+        { k: "それ", h: "それ", r: "sore", m: "그것", cat: "지시어", lvl: 1 },
+        { k: "あれ", h: "あれ", r: "are", m: "저것", cat: "지시어", lvl: 1 },
+        { k: "どれ", h: "どれ", r: "dore", m: "어느 것", cat: "지시어", lvl: 1 },
+        { k: "ここ", h: "ここ", r: "koko", m: "여기", cat: "지시어", lvl: 1 },
+        { k: "そこ", h: "そこ", r: "soko", m: "거기", cat: "지시어", lvl: 1 },
+        { k: "あそこ", h: "あそこ", r: "asoko", m: "저기", cat: "지시어", lvl: 1 },
+        { k: "どこ", h: "どこ", r: "doko", m: "어디", cat: "지시어", lvl: 1 },
+        { k: "こんな", h: "こんな", r: "konna", m: "이런", cat: "지시어", lvl: 1 },
+        { k: "そんな", h: "そんな", r: "sonna", m: "그런", cat: "지시어", lvl: 1 },
+        { k: "あんな", h: "あんな", r: "anna", m: "저런", cat: "지시어", lvl: 1 },
+        { k: "どんな", h: "どんな", r: "donna", m: "어떤", cat: "지시어", lvl: 1 },
+
+        { k: "キティ", h: "きてぃ", r: "Kiti", m: "키티", cat: "캐릭터", lvl: 1 },
+        { k: "クデタマ", h: "くでたま", r: "Kudetama", m: "쿠데타마", cat: "캐릭터", lvl: 1 },
+        { k: "マイメロディ", h: "まいめろでぃ", r: "Mai Merodi", m: "마이 멜로디", cat: "캐릭터", lvl: 1 },
+        { k: "ポムポムプリン", h: "ぽむぽむぷりん", r: "Pomupomu Purin", m: "폼폼푸린", cat: "캐릭터", lvl: 1 },
+        { k: "けろけろけろっぴ", h: "けろけろけろっぴ", r: "Kerokerokeroppi", m: "케로케로케로피", cat: "캐릭터", lvl: 1 },
+        { k: "シナモロール", h: "しなもろーる", r: "Shinamorōru", m: "시나모롤", cat: "캐릭터", lvl: 1 },
+        { k: "バッドばつ丸", h: "ばっどばつまる", r: "Baddo Batsumaru", m: "배드 바츠마루", cat: "캐릭터", lvl: 1 },
+        { k: "リトルツインスターズ", h: "りとるついんすたーず", r: "Ritoru Tsuin Sutāzu", m: "리틀 트윈 스타즈", cat: "캐릭터", lvl: 1 },
+        { k: "タキシードサム", h: "たきしーどさむ", r: "Takishīdo Samu", m: "턱시도 삼", cat: "캐릭터", lvl: 1 },
+        { k: "ぐでたま", h: "ぐでたま", r: "Gudetama", m: "구데타마", cat: "캐릭터", lvl: 1 },
+        { k: "ポチャッコ", h: "ぽちゃっこ", r: "Pochakko", m: "포챠코", cat: "캐릭터", lvl: 1 },
+        { k: "チョコキャット", h: "ちょこきゃっと", r: "Choko Kyatto", m: "초코 캣", cat: "캐릭터", lvl: 1 },
+        { k: "ゴロピカドン", h: "ごろぴかどん", r: "Goropikadon", m: "고로피카돈", cat: "캐릭터", lvl: 1 },
+        { k: "ハローキティ", h: "はろーきてぃ", r: "Harō Kiti", m: "헬로 키티", cat: "캐릭터", lvl: 1 },
+        { k: "マイスウィートピアノ", h: "まいすうぃーとぴあの", r: "Mai Suwīto Piano", m: "마이 스위트 피아노", cat: "캐릭터", lvl: 1 },
+        { k: "ドラえもん", h: "どらえもん", r: "Doraemon", m: "도라에몽", cat: "캐릭터", lvl: 1 },
+        { k: "ポケットモンスター", h: "ぽけっともんすたー", r: "Poketto Monsutā", m: "포켓몬스터", cat: "캐릭터", lvl: 1 },
+        { k: "ワンピース", h: "わんぴーす", r: "Wan Pīsu", m: "원피스", cat: "캐릭터", lvl: 1 },
+        { k: "ナルト", h: "なると", r: "Naruto", m: "나루토", cat: "캐릭터", lvl: 1 },
+        { k: "セーラームーン", h: "せーらーむーん", r: "Sērā Mūn", m: "세일러문", cat: "캐릭터", lvl: 1 },
+        { k: "ジブリ", h: "じぶり", r: "Jiburi", m: "지브리 캐릭터", cat: "캐릭터", lvl: 1 },
+        { k: "ポチ", h: "ぽち", r: "Pochi", m: "포치(일본 강아지 이름)", cat: "캐릭터", lvl: 1 },
+        { k: "クレヨンしんちゃん", h: "くれよんしんちゃん", r: "Kureyon Shin-chan", m: "크레용 신짱", cat: "캐릭터", lvl: 1 },
+        { k: "ドラゴンボール", h: "どらごんぼーる", r: "Doragon Bōru", m: "드래곤볼", cat: "캐릭터", lvl: 1 },
+        { k: "名探偵コナン", h: "めいたんていこなん", r: "Meitantei Konan", m: "명탐정 코난", cat: "캐릭터", lvl: 1 },
+        { k: "リラックマ", h: "りらっくま", r: "Rirakkuma", m: "리락쿠마", cat: "캐릭터", lvl: 1 },
+        { k: "すみっコぐらし", h: "すみっこぐらし", r: "Sumikkogurashi", m: "스밋코구라시", cat: "캐릭터", lvl: 1 },
+        { k: "ポムポムプリン", h: "ぽむぽむぷりん", r: "Pomupomu Purin", m: "폼폼푸린", cat: "캐릭터", lvl: 1 },
+        { k: "サンリオキャラクター", h: "さんりおきゃらくたー", r: "Sanrio Kyarakutā", m: "산리오 캐릭터", cat: "캐릭터", lvl: 1 },
+        { k: "マリオ", h: "まりお", r: "Mario", m: "마리오", cat: "캐릭터", lvl: 1 },
+
+
+
+        // 레벨 2 풀 (21~40 스테이지용)
+        { k: "水", h: "みず", r: "mizu", m: "물", cat: "마실것", lvl: 2 },
+        { k: "お茶", h: "おちゃ", r: "ocha", m: "차", cat: "마실것", lvl: 2 },
+        { k: "コーヒー", h: "こーひー", r: "kōhī", m: "커피", cat: "마실것", lvl: 2 },
+        { k: "ジュース", h: "じゅーす", r: "jūsu", m: "주스", cat: "마실것", lvl: 2 },
+        { k: "牛乳", h: "ぎゅうにゅう", r: "gyūnyū", m: "우유", cat: "마실것", lvl: 2 },
+        { k: "炭酸水", h: "たんさんすい", r: "tansansui", m: "탄산수", cat: "마실것", lvl: 2 },
+        { k: "紅茶", h: "こうちゃ", r: "kōcha", m: "홍차", cat: "마실것", lvl: 2 },
+        { k: "緑茶", h: "りょくちゃ", r: "ryokucha", m: "녹차", cat: "마실것", lvl: 2 },
+        { k: "麦茶", h: "むぎちゃ", r: "mugicha", m: "보리차", cat: "마실것", lvl: 2 },
+        { k: "ミルクティー", h: "みるくてぃー", r: "mirukutī", m: "밀크티", cat: "마실것", lvl: 2 },
+        { k: "レモネード", h: "れもねーど", r: "remonēdo", m: "레모네이드", cat: "마실것", lvl: 2 },
+        { k: "スポーツドリンク", h: "すぽーつどりんく", r: "supōtsu dorinku", m: "스포츠 음료", cat: "마실것", lvl: 2 },
+        { k: "アルコール", h: "あるこーる", r: "arukōru", m: "알코올", cat: "마실것", lvl: 2 },
+        { k: "ビール", h: "びーる", r: "bīru", m: "맥주", cat: "마실것", lvl: 2 },
+        { k: "ワイン", h: "わいん", r: "wain", m: "와인", cat: "마실것", lvl: 2 },
+        { k: "日本酒", h: "にほんしゅ", r: "nihonshu", m: "일본주", cat: "마실것", lvl: 2 },
+        { k: "カクテル", h: "かくてる", r: "kakuteru", m: "칵테일", cat: "마실것", lvl: 2 },
+        { k: "ジュースバー", h: "じゅーすばー", r: "jūsu bā", m: "주스 바", cat: "마실것", lvl: 2 },
+        { k: "スムージー", h: "すむーじー", r: "sumūjī", m: "스무디", cat: "마실것", lvl: 2 },
+        { k: "豆乳", h: "とうにゅう", r: "tōnyū", m: "두유", cat: "마실것", lvl: 2 },
+
+        { k: "パーティー", h: "ぱーてぃー", r: "pātī", m: "파티", cat: "파티", lvl: 2 },
+        { k: "招待状", h: "しょうたいじょう", r: "shōtaijō", m: "초대장", cat: "파티", lvl: 2 },
+        { k: "飾り付け", h: "かざりつけ", r: "kazaritsuke", m: "장식", cat: "파티", lvl: 2 },
+        { k: "風船", h: "ふうせん", r: "fūsen", m: "풍선", cat: "파티", lvl: 2 },
+        { k: "ケーキ", h: "けーき", r: "kēki", m: "케이크", cat: "파티", lvl: 2 },
+        { k: "キャンドル", h: "きゃんどる", r: "kyandoru", m: "캔들", cat: "파티", lvl: 2 },
+        { k: "音楽", h: "おんがく", r: "ongaku", m: "음악", cat: "파티", lvl: 2 },
+        { k: "ゲーム", h: "げーむ", r: "gēmu", m: "게임", cat: "파티", lvl: 2 },
+        { k: "プレゼント", h: "ぷれぜんと", r: "purezento", m: "선물", cat: "파티", lvl: 2 },
+        { k: "参加者", h: "さんかしゃ", r: "sankasha", m: "참가자", cat: "파티", lvl: 2 },
+        { k: "飲み物", h: "のみもの", r: "nomimono", m: "음료수", cat: "파티", lvl: 2 },
+        { k: "料理", h: "りょうり", r: "ryōri", m: "요리", cat: "파티", lvl: 2 },
+        { k: "乾杯", h: "かんぱい", r: "kanpai", m: "건배", cat: "파티", lvl: 2 },
+        { k: "ダンス", h: "だんす", r: "dansu", m: "댄스", cat: "파티", lvl: 2 },
+        { k: "招待", h: "しょうたい", r: "shōtai", m: "초대", cat: "파티", lvl: 2 },
+        { k: "ホスト", h: "ほすと", r: "hosuto", m: "주최자", cat: "파티", lvl: 2 },
+        { k: "ゲスト", h: "げすと", r: "gesuto", m: "손님", cat: "파티", lvl: 2 },
+        { k: "席", h: "せき", r: "seki", m: "자리", cat: "파티", lvl: 2 },
+        { k: "招待客", h: "しょうたいきゃく", r: "shōtaikyaku", m: "초대 손님", cat: "파티", lvl: 2 },
+        { k: "記念写真", h: "きねんしゃしん", r: "kinenshashin", m: "기념사진", cat: "파티", lvl: 2 },
+
+        { k: "犬", h: "いぬ", r: "inu", m: "개", i: "🐕", cat: "동물", lvl: 2 },
+        { k: "猫", h: "ねこ", r: "neko", m: "고양이", i: "🐈", cat: "동물", lvl: 2 },
+        { k: "兎", h: "うさぎ", r: "usagi", m: "토끼", i: "🐇", cat: "동물", lvl: 2 },
+        { k: "象", h: "ぞう", r: "zō", m: "코끼리", i: "🐘", cat: "동물", lvl: 2 },
+        { k: "虎", h: "とら", r: "tora", m: "호랑이", i: "🐅", cat: "동물", lvl: 2 },
+        { k: "鳥", h: "とり", r: "tori", m: "새", i: "🐦", cat: "동물", lvl: 2 },
+        { k: "魚", h: "さかな", r: "sakana", m: "물고기", i: "🐟", cat: "동물", lvl: 2 },
+        { k: "猿", h: "さる", r: "saru", m: "원숭이", i: "🐒", cat: "동물", lvl: 2 },
+        { k: "馬", h: "うま", r: "uma", m: "말", i: "🐎", cat: "동물", lvl: 2 },
+        { k: "牛", h: "うし", r: "ushi", m: "소", i: "🐄", cat: "동물", lvl: 2 },
+        { k: "羊", h: "ひつじ", r: "hitsuji", m: "양", i: "🐑", cat: "동물", lvl: 2 },
+        { k: "蛇", h: "へび", r: "hebi", m: "뱀", i: "🐍", cat: "동물", lvl: 2 },
+        { k: "鹿", h: "しか", r: "shika", m: "사슴", i: "🦌", cat: "동물", lvl: 2 },
+        { k: "熊", h: "くま", r: "kuma", m: "곰", i: "🐻", cat: "동물", lvl: 2 },
+        { k: "狐", h: "きつね", r: "kitsune", m: "여우", i: "🦊", cat: "동물", lvl: 2 },
+        { k: "鯨", h: "くじら", r: "kujira", m: "고래", i: "🐋", cat: "동물", lvl: 2 },
+        { k: "亀", h: "かめ", r: "kame", m: "거북이", i: "🐢", cat: "동물", lvl: 2 },
+        { k: "蛙", h: "かえる", r: "kaeru", m: "개구리", i: "🐸", cat: "동물", lvl: 2 },
+        { k: "蝙蝠", h: "こうもり", r: "kōmori", m: "박쥐", i: "🦇", cat: "동물", lvl: 2 },
+        { k: "狸", h: "たぬき", r: "tanuki", m: "너구리", i: "🦝", cat: "동물", lvl: 2 },
+        { k: "烏", h: "からす", r: "karasu", m: "까마귀", i: "🐦‍⬛", cat: "동물", lvl: 2 },
+        { k: "鷹", h: "たか", r: "taka", m: "매", i: "🦅", cat: "동물", lvl: 2 },
+        { k: "蜥蜴", h: "とかげ", r: "tokage", m: "도마뱀", i: "🦎", cat: "동물", lvl: 2 },
+        { k: "鶴", h: "つる", r: "tsuru", m: "학", i: "🐦", cat: "동물", lvl: 2 },
+        { k: "孔雀", h: "くじゃく", r: "kujaku", m: "공작새", i: "🦚", cat: "동물", lvl: 2 },
+        { k: "蜂", h: "はち", r: "hachi", m: "벌", i: "🐝", cat: "동물", lvl: 2 },
+        { k: "蟻", h: "あり", r: "ari", m: "개미", i: "🐜", cat: "동물", lvl: 2 },
+        { k: "蛸", h: "たこ", r: "tako", m: "문어", i: "🐙", cat: "동물", lvl: 2 },
+        { k: "鰐", h: "わに", r: "wani", m: "악어", i: "🐊", cat: "동물", lvl: 2 },
+        { k: "錦鯉", h: "にしきごい", r: "nishikigoi", m: "잉어", i: "🐠", cat: "동물", lvl: 2 },
+        { k: "蜂鳥", h: "はちどり", r: "hachidori", m: "벌새", i: "🐦", cat: "동물", lvl: 2 },
+
+        { k: "柿", h: "かき", r: "kaki", m: "감", i: "🍅", cat: "과일", lvl: 1 },
+        { k: "苺", h: "いちご", r: "ichigo", m: "딸기", i: "🍓", cat: "과일", lvl: 1 },
+        { k: "林檎", h: "りんご", r: "ringo", m: "사과", i: "🍎", cat: "과일", lvl: 1 },
+        { k: "葡萄", h: "ぶどう", r: "budō", m: "포도", i: "🍇", cat: "과일", lvl: 1 },
+        { k: "橙", h: "だいだい", r: "daidai", m: "감귤", i: "🍊", cat: "과일", lvl: 1 },
+        { k: "桃", h: "もも", r: "momo", m: "복숭아", i: "🍑", cat: "과일", lvl: 1 },
+        { k: "梨", h: "なし", r: "nashi", m: "배", i: "🍐", cat: "과일", lvl: 1 },
+        { k: "檸檬", h: "れもん", r: "remon", m: "레몬", i: "🍋", cat: "과일", lvl: 1 },
+        { k: "香蕉", h: "ばなな", r: "banana", m: "바나나", i: "🍌", cat: "과일", lvl: 1 },
+        { k: "西瓜", h: "すいか", r: "suika", m: "수박", i: "🍉", cat: "과일", lvl: 1 },
+        { k: "鳳梨", h: "ぱいなっぷる", r: "painappuru", m: "파인애플", i: "🍍", cat: "과일", lvl: 1 },
+        { k: "藍莓", h: "ぶるーべりー", r: "burūberī", m: "블루베리", i: "🫐", cat: "과일", lvl: 1 },
+        { k: "桑葚", h: "くわのみ", r: "kuwanomi", m: "뽕나무 열매", i: "🌿", cat: "과일", lvl: 1 },
+        { k: "無花果", h: "いちじく", r: "ichijiku", m: "무화과", i: "🍈", cat: "과일", lvl: 1 },
+        { k: "枇杷", h: "びわ", r: "biwa", m: "비파", i: "🍒", cat: "과일", lvl: 1 },
+        { k: "柚子", h: "ゆず", r: "yuzu", m: "유자", i: "🍋", cat: "과일", lvl: 1 },
+        { k: "栗", h: "くり", r: "kuri", m: "밤", i: "🌰", cat: "과일", lvl: 1 },
+        { k: "梅", h: "うめ", r: "ume", m: "매실", i: "🍑", cat: "과일", lvl: 1 },
+        { k: "木苺", h: "きいちご", r: "kiichigo", m: "산딸기", i: "🍓", cat: "과일", lvl: 1 },
+        { k: "葡萄柚", h: "ぐれーぷふるーつ", r: "gurēpufurūtsu", m: "자몽", i: "🍊", cat: "과일", lvl: 1 },
+        { k: "杏", h: "あんず", r: "anzu", m: "살구", i: "🍑", cat: "과일", lvl: 1 },
+        { k: "龍眼", h: "りゅうがん", r: "ryūgan", m: "용안", i: "🍒", cat: "과일", lvl: 1 },
+        { k: "ざくろ", h: "ざくろ", r: "zakuro", m: "석류", i: "🍎", cat: "과일", lvl: 1 },
+        { k: "紅柿", h: "べにがき", r: "benigaki", m: "붉은 감", i: "🍅", cat: "과일", lvl: 1 },
+        { k: "棗", h: "なつめ", r: "natsume", m: "대추야자", i: "🌰", cat: "과일", lvl: 1 },
+        { k: "さくらんぼ", h: "さくらんぼ", r: "sakuranbo", m: "체리", i: "🍒", cat: "과일", lvl: 1 },
+        { k: "メロン", h: "めろん", r: "meron", m: "멜론", i: "🍈", cat: "과일", lvl: 1 },
+        { k: "すもも", h: "すもも", r: "sumomo", m: "자두", i: "🍑", cat: "과일", lvl: 1 },
+        { k: "やまもも", h: "やまもも", r: "yamamomo", m: "산딸기", i: "🍓", cat: "과일", lvl: 1 },
+
+        { k: "甘藷", h: "さつまいも", r: "satsumaimo", m: "고구마", i: "🍠", cat: "야채", lvl: 2 },
+        { k: "大根", h: "だいこん", r: "daikon", m: "무", i: "🥕", cat: "야채", lvl: 2 },
+        { k: "人参", h: "にんじん", r: "ninjin", m: "당근", i: "🥕", cat: "야채", lvl: 2 },
+        { k: "白菜", h: "はくさい", r: "hakusai", m: "배추", i: "🥬", cat: "야채", lvl: 2 },
+        { k: "玉葱", h: "たまねぎ", r: "tamanegi", m: "양파", i: "🧅", cat: "야채", lvl: 2 },
+        { k: "長葱", h: "ながねぎ", r: "naganegi", m: "파", i: "🧅", cat: "야채", lvl: 2 },
+        { k: "胡瓜", h: "きゅうり", r: "kyūri", m: "오이", i: "🥒", cat: "야채", lvl: 2 },
+        { k: "茄子", h: "なす", r: "nasu", m: "가지", i: "🍆", cat: "야채", lvl: 2 },
+        { k: "大蒜", h: "にんにく", r: "ninniku", m: "마늘", i: "🧄", cat: "야채", lvl: 2 },
+        { k: "生姜", h: "しょうが", r: "shōga", m: "생강", i: "🌿", cat: "야채", lvl: 2 },
+        { k: "青菜", h: "あおな", r: "aona", m: "청경채", i: "🥬", cat: "야채", lvl: 2 },
+        { k: "里芋", h: "さといも", r: "satoimo", m: "토란", i: "🥔", cat: "야채", lvl: 2 },
+        { k: "芋", h: "いも", r: "imo", m: "고구마", i: "🍠", cat: "야채", lvl: 2 },
+        { k: "蕪", h: "かぶ", r: "kabu", m: "순무", i: "🥔", cat: "야채", lvl: 2 },
+        { k: "筍", h: "たけのこ", r: "takenoko", m: "죽순", i: "🎍", cat: "야채", lvl: 2 },
+        { k: "蓮根", h: "れんこん", r: "renkon", m: "연근", i: "🥔", cat: "야채", lvl: 2 },
+        { k: "玉蜀黍", h: "とうもろこし", r: "tōmorokoshi", m: "옥수수", i: "🌽", cat: "야채", lvl: 2 },
+        { k: "ピーマン", h: "ぴーまん", r: "pīman", m: "피망", i: "🫑", cat: "야채", lvl: 2 },
+        { k: "ししとう", h: "ししとう", r: "shishitō", m: "고추", i: "🌶️", cat: "야채", lvl: 2 },
+        { k: "セロリ", h: "せろり", r: "serori", m: "셀러리", i: "🥬", cat: "야채", lvl: 2 },
+        { k: "ほうれん草", h: "ほうれんそう", r: "hōrensō", m: "시금치", i: "🥬", cat: "야채", lvl: 2 },
+        { k: "もやし", h: "もやし", r: "moyashi", m: "콩나물", i: "🌿", cat: "야채", lvl: 2 },
+        { k: "トマト", h: "とまと", r: "tomato", m: "토마토", i: "🍅", cat: "야채", lvl: 2 },
+        { k: "ズッキーニ", h: "ずっきーに", r: "zukkīni", m: "주키니호박", i: "🥒", cat: "야채", lvl: 2 },
+        { k: "さやえんどう", h: "さやえんどう", r: "sayaendō", m: "완두콩", i: "🌱", cat: "야채", lvl: 2 },
+        { k: "アスパラガス", h: "あすぱらがす", r: "asuparagasu", m: "아스파라거스", i: "🥦", cat: "야채", lvl: 2 },
+        { k: "カボチャ", h: "かぼちゃ", r: "kabocha", m: "호박", i: "🎃", cat: "야채", lvl: 2 },
+        { k: "ごぼう", h: "ごぼう", r: "gobō", m: "우엉", i: "🦴", cat: "야채", lvl: 2 },
+        { k: "チンゲンサイ", h: "ちんげんさい", r: "chingensai", m: "청경채", i: "🥬", cat: "야채", lvl: 2 },
+        { k: "エンドウ", h: "えんどう", r: "endō", m: "완두", i: "🌱", cat: "야채", lvl: 2 },
+        { k: "ラディッシュ", h: "らでぃっしゅ", r: "radisshu", m: "무순", i: "🌱", cat: "야채", lvl: 2 },
+        { k: "レタス", h: "れたす", r: "retasu", m: "상추", i: "🥬", cat: "야채", lvl: 2 },
+
+        { k: "寿司", h: "すし", r: "sushi", m: "초밥", i: "🍣", cat: "음식", lvl: 2 },
+        { k: "天ぷら", h: "てんぷら", r: "tenpura", m: "튀김", i: "🍤", cat: "음식", lvl: 2 },
+        { k: "ラーメン", h: "らーめん", r: "rāmen", m: "라면", i: "🍜", cat: "음식", lvl: 2 },
+        { k: "焼き鳥", h: "やきとり", r: "yakitori", m: "닭꼬치", i: "🍢", cat: "음식", lvl: 2 },
+        { k: "お好み焼き", h: "おこのみやき", r: "okonomiyaki", m: "오코노미야키", i: "🥞", cat: "음식", lvl: 2 },
+        { k: "餃子", h: "ぎょうざ", r: "gyōza", m: "만두", i: "🥟", cat: "음식", lvl: 2 },
+        { k: "味噌汁", h: "みそしる", r: "misoshiru", m: "된장국", i: "🥣", cat: "음식", lvl: 2 },
+        { k: "刺身", h: "さしみ", r: "sashimi", m: "회", i: "🍣", cat: "음식", lvl: 2 },
+        { k: "牛丼", h: "ぎゅうどん", r: "gyūdon", m: "소고기 덮밥", i: "🍚", cat: "음식", lvl: 2 },
+        { k: "照り焼き", h: "てりやき", r: "teriyaki", m: "데리야끼", i: "🍗", cat: "음식", lvl: 2 },
+        { k: "味噌ラーメン", h: "みそらーめん", r: "misorāmen", m: "된장 라면", i: "🍜", cat: "음식", lvl: 2 },
+        { k: "天丼", h: "てんどん", r: "tendon", m: "튀김 덮밥", i: "🍤", cat: "음식", lvl: 2 },
+        { k: "おにぎり", h: "おにぎり", r: "onigiri", m: "주먹밥", i: "🍙", cat: "음식", lvl: 2 },
+        { k: "たこ焼き", h: "たこやき", r: "takoyaki", m: "타코야끼", i: "🦑", cat: "음식", lvl: 2 },
+        { k: "味噌カツ", h: "みそかつ", r: "misokatsu", m: "된장 돈까스", i: "🍖", cat: "음식", lvl: 2 },
+        { k: "うどん", h: "うどん", r: "udon", m: "우동", i: "🍜", cat: "음식", lvl: 2 },
+        { k: "そば", h: "そば", r: "soba", m: "소바", i: "🍜", cat: "음식", lvl: 2 },
+        { k: "カレーライス", h: "かれーらいす", r: "karēraisu", m: "카레라이스", i: "🍛", cat: "음식", lvl: 2 },
+        { k: "おでん", h: "おでん", r: "oden", m: "오뎅", i: "🍢", cat: "음식", lvl: 2 },
+        { k: "しゃぶしゃぶ", h: "しゃぶしゃぶ", r: "shabushabu", m: "샤브샤브", i: "🥩", cat: "음식", lvl: 2 },
+        { k: "餅", h: "もち", r: "mochi", m: "떡", i: "🍡", cat: "음식", lvl: 2 },
+        { k: "焼きそば", h: "やきそば", r: "yakisoba", m: "야키소바", i: "🍜", cat: "음식", lvl: 2 },
+        { k: "鰻", h: "うなぎ", r: "unagi", m: "장어", i: "🐟", cat: "음식", lvl: 2 },
+        { k: "抹茶", h: "まっちゃ", r: "matcha", m: "말차", i: "🍵", cat: "음식", lvl: 2 },
+        { k: "餡子", h: "あんこ", r: "anko", m: "앙꼬(팥소)", i: "🍡", cat: "음식", lvl: 2 },
+        { k: "茶碗蒸し", h: "ちゃわんむし", r: "chawanmushi", m: "계란찜", i: "🍮", cat: "음식", lvl: 2 },
+        { k: "から揚げ", h: "からあげ", r: "karaage", m: "치킨튀김", i: "🍗", cat: "음식", lvl: 2 },
+        { k: "お粥", h: "おかゆ", r: "okayu", m: "죽", i: "🍲", cat: "음식", lvl: 2 },
+        { k: "海苔巻き", h: "のりまき", r: "norimaki", m: "김밥", i: "🍙", cat: "음식", lvl: 2 },
+        { k: "餡パン", h: "あんぱん", r: "anpan", m: "팥빵", i: "🍞", cat: "음식", lvl: 2 },
+
+        { k: "ケーキ", h: "けーき", r: "kēki", m: "케이크", cat: "디저트", lvl: 2 },
+        { k: "アイスクリーム", h: "あいすくりーむ", r: "aisukurīmu", m: "아이스크림", cat: "디저트", lvl: 2 },
+        { k: "プリン", h: "ぷりん", r: "purin", m: "푸딩", cat: "디저트", lvl: 2 },
+        { k: "クッキー", h: "くっきー", r: "kukkī", m: "쿠키", cat: "디저트", lvl: 2 },
+        { k: "チョコレート", h: "ちょこれーと", r: "chokorēto", m: "초콜릿", cat: "디저트", lvl: 2 },
+        { k: "マカロン", h: "まかろん", r: "makaron", m: "마카롱", cat: "디저트", lvl: 2 },
+        { k: "タルト", h: "たると", r: "taruto", m: "타르트", cat: "디저트", lvl: 2 },
+        { k: "シュークリーム", h: "しゅーくりーむ", r: "shūkurīmu", m: "슈크림", cat: "디저트", lvl: 2 },
+        { k: "ワッフル", h: "わっふる", r: "waffuru", m: "와플", cat: "디저트", lvl: 2 },
+        { k: "アイスケーキ", h: "あいすけーき", r: "aisukēki", m: "아이스 케이크", cat: "디저트", lvl: 2 },
+        { k: "パンケーキ", h: "ぱんけーき", r: "pankēki", m: "팬케이크", cat: "디저트", lvl: 2 },
+        { k: "ゼリー", h: "ぜりー", r: "zerī", m: "젤리", cat: "디저트", lvl: 2 },
+        { k: "ムース", h: "むーす", r: "mūsu", m: "무스", cat: "디저트", lvl: 2 },
+        { k: "チーズケーキ", h: "ちーずけーき", r: "chīzukēki", m: "치즈케이크", cat: "디저트", lvl: 2 },
+        { k: "ブラウニー", h: "ぶらうにー", r: "buraunī", m: "브라우니", cat: "디저트", lvl: 2 },
+        { k: "マフィン", h: "まふぃん", r: "mafin", m: "머핀", cat: "디저트", lvl: 2 },
+        { k: "クレープ", h: "くれーぷ", r: "kurēpu", m: "크레이프", cat: "디저트", lvl: 2 },
+        { k: "タピオカ", h: "たぴおか", r: "tapioka", m: "타피오카", cat: "디저트", lvl: 2 },
+        { k: "和菓子", h: "わがし", r: "wagashi", m: "일본 전통과자", cat: "디저트", lvl: 2 },
+        { k: "団子", h: "だんご", r: "dango", m: "당고(떡꼬치)", cat: "디저트", lvl: 2 },
+        { k: "アイスキャンディー", h: "あいすきゃんでぃー", r: "aisukyandī", m: "아이스 캔디", cat: "디저트", lvl: 2 },
+        { k: "パフェ", h: "ぱふぇ", r: "pafe", m: "파르페", cat: "디저트", lvl: 2 },
+        { k: "ショートケーキ", h: "しょーとけーき", r: "shōtokēki", m: "쇼트케이크", cat: "디저트", lvl: 2 },
+        { k: "マシュマロ", h: "ましゅまろ", r: "mashumaro", m: "마시멜로", cat: "디저트", lvl: 2 },
+        { k: "アイスキャンディ", h: "あいすきゃんでぃ", r: "aisukyandī", m: "아이스 캔디", cat: "디저트", lvl: 2 },
+        { k: "ミルクレープ", h: "みるくれーぷ", r: "mirukurepu", m: "밀크 크레이프", cat: "디저트", lvl: 2 },
+        { k: "チョコレートケーキ", h: "ちょこれーとけーき", r: "chokorētokēki", m: "초콜릿 케이크", cat: "디저트", lvl: 2 },
+        { k: "シフォンケーキ", h: "しふぉんけーき", r: "shifonkēki", m: "시폰 케이크", cat: "디저트", lvl: 2 },
+        { k: "パンナコッタ", h: "ぱんなこった", r: "pannakotta", m: "판나코타", cat: "디저트", lvl: 2 },
+        { k: "モンブラン", h: "もんぶらん", r: "monburan", m: "몽블랑", cat: "디저트", lvl: 2 },
+        { k: "プリンアラモード", h: "ぷりんあらもーど", r: "purin aramōdo", m: "프린 아라모드", cat: "디저트", lvl: 2 },
+        
+        { k: "靴", h: "くつ", r: "kutsu", m: "신발", i: "", cat: "의류", lvl: 2 },
+        { k: "帽子", h: "ぼうし", r: "bōshi", m: "모자", i: "", cat: "의류", lvl: 2 },
+        { k: "靴下", h: "くつした", r: "kutsushita", m: "양말", i: "", cat: "의류", lvl: 2 },
+        { k: "眼鏡", h: "めがね", r: "megane", m: "안경", i: "", cat: "의류", lvl: 2 },
+        { k: "スカート", h: "すかーと", r: "sukāto", m: "치마", i: "", cat: "의류", lvl: 2 },
+        { k: "シャツ", h: "しゃつ", r: "shatsu", m: "셔츠", i: "", cat: "의류", lvl: 2 },
+        { k: "ジャケット", h: "じゃけっと", r: "jaketto", m: "재킷", i: "", cat: "의류", lvl: 2 },
+        { k: "ズボン", h: "ずぼん", r: "zubon", m: "바지", i: "", cat: "의류", lvl: 2 },
+        { k: "セーター", h: "せーたー", r: "sētā", m: "스웨터", i: "", cat: "의류", lvl: 2 },
+        { k: "ワンピース", h: "わんぴーす", r: "wanpīsu", m: "원피스", i: "", cat: "의류", lvl: 2 },
+        { k: "コート", h: "こーと", r: "kōto", m: "코트", i: "", cat: "의류", lvl: 2 },
+        { k: "ネクタイ", h: "ねくたい", r: "nekutai", m: "넥타이", i: "", cat: "의류", lvl: 2 },
+        { k: "パーカー", h: "ぱーかー", r: "pākā", m: "후드티", i: "", cat: "의류", lvl: 2 },
+        { k: "ベルト", h: "べると", r: "beruto", m: "벨트", i: "", cat: "의류", lvl: 2 },
+        { k: "パンツ", h: "ぱんつ", r: "pantsu", m: "팬티/속옷", i: "", cat: "의류", lvl: 2 },
+        { k: "トレーナー", h: "とれーなー", r: "torēnā", m: "맨투맨", i: "", cat: "의류", lvl: 2 },
+        { k: "スーツ", h: "すーつ", r: "sūtsu", m: "정장", i: "", cat: "의류", lvl: 2 },
+        { k: "ジーンズ", h: "じーんず", r: "jīnzu", m: "청바지", i: "", cat: "의류", lvl: 2 },
+        { k: "カーディガン", h: "かーでぃがん", r: "kādigān", m: "가디건", i: "", cat: "의류", lvl: 2 },
+        { k: "タイツ", h: "たいつ", r: "taitsu", m: "스타킹", i: "", cat: "의류", lvl: 2 },
+        { k: "レインコート", h: "れいんこーと", r: "reinkōto", m: "우비", i: "", cat: "의류", lvl: 2 },
+        { k: "ブーツ", h: "ぶーつ", r: "būtsu", m: "부츠", i: "", cat: "의류", lvl: 2 },
+        { k: "スニーカー", h: "すにーかー", r: "sunīkā", m: "스니커즈", i: "", cat: "의류", lvl: 2 },
+        { k: "ジャージ", h: "じゃーじ", r: "jāji", m: "트레이닝복", i: "", cat: "의류", lvl: 2 },
+        { k: "パジャマ", h: "ぱじゃま", r: "pajama", m: "파자마", i: "", cat: "의류", lvl: 2 },
+        { k: "ジャンパー", h: "じゃんぱー", r: "janpā", m: "점퍼", i: "", cat: "의류", lvl: 2 },
+        { k: "ベスト", h: "べすと", r: "besuto", m: "조끼", i: "", cat: "의류", lvl: 2 },
+        { k: "タンクトップ", h: "たんくとっぷ", r: "tankutoppu", m: "민소매", i: "", cat: "의류", lvl: 2 },
+        { k: "レインブーツ", h: "れいんぶーつ", r: "reinbūtsu", m: "장화", i: "", cat: "의류", lvl: 2 },
+
+        { k: "車", h: "くるま", r: "kuruma", m: "자동차", i: "🚗", cat: "탈것", lvl: 2 },
+        { k: "飛行機", h: "ひこうき", r: "hikōki", m: "비행기", i: "✈️", cat: "탈것", lvl: 2 },
+        { k: "電車", h: "でんしゃ", r: "densha", m: "전철", i: "🚆", cat: "탈것", lvl: 2 },
+        { k: "自転車", h: "じてんしゃ", r: "jitensha", m: "자전거", i: "🚲", cat: "탈것", lvl: 2 },
+        { k: "バイク", h: "ばいく", r: "baiku", m: "오토바이", i: "🏍️", cat: "탈것", lvl: 2 },
+        { k: "バス", h: "ばす", r: "basu", m: "버스", i: "🚌", cat: "탈것", lvl: 2 },
+        { k: "船", h: "ふね", r: "fune", m: "배", i: "⛴️", cat: "탈것", lvl: 2 },
+        { k: "救急車", h: "きゅうきゅうしゃ", r: "kyūkyūsha", m: "구급차", i: "🚑", cat: "탈것", lvl: 2 },
+        { k: "消防車", h: "しょうぼうしゃ", r: "shōbōsha", m: "소방차", i: "🚒", cat: "탈것", lvl: 2 },
+        { k: "トラック", h: "とらっく", r: "torakku", m: "트럭", i: "🚚", cat: "탈것", lvl: 2 },
+        { k: "バギー", h: "ばぎー", r: "bagī", m: "바기", i: "🛺", cat: "탈것", lvl: 2 },
+        { k: "ヘリコプター", h: "へりこぷたー", r: "herikoputā", m: "헬리콥터", i: "🚁", cat: "탈것", lvl: 2 },
+        { k: "ケーブルカー", h: "けーぶるかー", r: "kēburukā", m: "케이블카", i: "🚠", cat: "탈것", lvl: 2 },
+        { k: "モノレール", h: "ものれーる", r: "monorēru", m: "모노레일", i: "🚝", cat: "탈것", lvl: 2 },
+        { k: "地下鉄", h: "ちかてつ", r: "chikatetsu", m: "지하철", i: "🚇", cat: "탈것", lvl: 2 },
+        { k: "ジープ", h: "じーぷ", r: "jīpu", m: "지프", i: "🚙", cat: "탈것", lvl: 2 },
+        { k: "カヌー", h: "かぬー", r: "kanū", m: "카누", i: "🛶", cat: "탈것", lvl: 2 },
+        { k: "ヨット", h: "よっと", r: "yotto", m: "요트", i: "⛵", cat: "탈것", lvl: 2 },
+        { k: "チャリオット", h: "ちゃりおっと", r: "chariotto", m: "전차", i: "🐴🛺", cat: "탈것", lvl: 2 },
+        { k: "ロードバイク", h: "ろーどばいく", r: "rōdobaiku", m: "로드 바이크", i: "🚴‍♂️", cat: "탈것", lvl: 2 },
+        { k: "スクーター", h: "すくーたー", r: "sukūtā", m: "스쿠터", i: "🛵", cat: "탈것", lvl: 2 },
+        { k: "トラム", h: "とらむ", r: "toramu", m: "트램", i: "🚋", cat: "탈것", lvl: 2 },
+        { k: "リムジン", h: "りむじん", r: "rimujin", m: "리무진", i: "🚘", cat: "탈것", lvl: 2 },
+        { k: "ファーストクラス", h: "ふぁーすとくらす", r: "fāsuto kurasu", m: "퍼스트 클래스", i: "✈️", cat: "탈것", lvl: 2 },
+        { k: "宇宙船", h: "うちゅうせん", r: "uchūsen", m: "우주선", i: "🚀", cat: "탈것", lvl: 2 },
+        { k: "グライダー", h: "ぐらいだー", r: "guraidā", m: "글라이더", i: "🪂", cat: "탈것", lvl: 2 },
+        { k: "トラクター", h: "とらくたー", r: "torakutā", m: "트랙터", i: "🚜", cat: "탈것", lvl: 2 },
+        { k: "ケッタマシン", h: "けったましん", r: "ketta mashin", m: "자전거(속어)", i: "🚲", cat: "탈것", lvl: 2 },
+        { k: "カート", h: "かーと", r: "kāto", m: "카트", i: "🏎️", cat: "탈것", lvl: 2 },
+        { k: "ボート", h: "ぼーと", r: "bōto", m: "보트", i: "🚤", cat: "탈것", lvl: 2 },
+
+        { k: "時間", h: "じかん", r: "jikan", m: "시간", cat: "시간과 날짜", lvl: 2 },
+        { k: "分", h: "ふん", r: "fun", m: "분", cat: "시간과 날짜", lvl: 2 },
+        { k: "秒", h: "びょう", r: "byō", m: "초", cat: "시간과 날짜", lvl: 2 },
+        { k: "時", h: "じ", r: "ji", m: "~시", cat: "시간과 날짜", lvl: 2 },
+        { k: "今日", h: "きょう", r: "kyō", m: "오늘", cat: "시간과 날짜", lvl: 2 },
+        { k: "明日", h: "あした", r: "ashita", m: "내일", cat: "시간과 날짜", lvl: 2 },
+        { k: "昨日", h: "きのう", r: "kinō", m: "어제", cat: "시간과 날짜", lvl: 2 },
+        { k: "年月日", h: "ねんがっぴ", r: "nengappi", m: "년월일", cat: "시간과 날짜", lvl: 2 },
+        { k: "午前", h: "ごぜん", r: "gozen", m: "오전", cat: "시간과 날짜", lvl: 2 },
+        { k: "午後", h: "ごご", r: "gogo", m: "오후", cat: "시간과 날짜", lvl: 2 },
+        { k: "週", h: "しゅう", r: "shū", m: "주", cat: "시간과 날짜", lvl: 2 },
+        { k: "月", h: "つき", r: "tsuki", m: "달, 월", cat: "시간과 날짜", lvl: 2 },
+        { k: "年", h: "とし", r: "toshi", m: "년", cat: "시간과 날짜", lvl: 2 },
+        { k: "今週", h: "こんしゅう", r: "konshū", m: "이번 주", cat: "시간과 날짜", lvl: 2 },
+        { k: "来週", h: "らいしゅう", r: "raishū", m: "다음 주", cat: "시간과 날짜", lvl: 2 },
+        { k: "先週", h: "せんしゅう", r: "senshū", m: "지난 주", cat: "시간과 날짜", lvl: 2 },
+        { k: "曜日", h: "ようび", r: "yōbi", m: "요일", cat: "시간과 날짜", lvl: 2 },
+        { k: "朝", h: "あさ", r: "asa", m: "아침", cat: "시간과 날짜", lvl: 2 },
+        { k: "昼", h: "ひる", r: "hiru", m: "점심, 낮", cat: "시간과 날짜", lvl: 2 },
+        { k: "夜", h: "よる", r: "yoru", m: "밤", cat: "시간과 날짜", lvl: 2 },
+
+        { k: "家", h: "いえ", r: "ie", m: "집", cat: "집구조", lvl: 2 },
+        { k: "部屋", h: "へや", r: "heya", m: "방", cat: "집구조", lvl: 2 },
+        { k: "玄関", h: "げんかん", r: "genkan", m: "현관", cat: "집구조", lvl: 2 },
+        { k: "台所", h: "だいどころ", r: "daidokoro", m: "부엌", cat: "집구조", lvl: 2 },
+        { k: "浴室", h: "よくしつ", r: "yokushitsu", m: "욕실", cat: "집구조", lvl: 2 },
+        { k: "居間", h: "いま", r: "ima", m: "거실", cat: "집구조", lvl: 2 },
+        { k: "寝室", h: "しんしつ", r: "shinshitsu", m: "침실", cat: "집구조", lvl: 2 },
+        { k: "廊下", h: "ろうか", r: "rōka", m: "복도", cat: "집구조", lvl: 2 },
+        { k: "屋根", h: "やね", r: "yane", m: "지붕", cat: "집구조", lvl: 2 },
+        { k: "壁", h: "かべ", r: "kabe", m: "벽", cat: "집구조", lvl: 2 },
+        { k: "窓", h: "まど", r: "mado", m: "창문", cat: "집구조", lvl: 2 },
+        { k: "階段", h: "かいだん", r: "kaidan", m: "계단", cat: "집구조", lvl: 2 },
+        { k: "庭", h: "にわ", r: "niwa", m: "마당", cat: "집구조", lvl: 2 },
+        { k: "地下室", h: "ちかしつ", r: "chikashitsu", m: "지하실", cat: "집구조", lvl: 2 },
+        { k: "天井", h: "てんじょう", r: "tenjō", m: "천장", cat: "집구조", lvl: 2 },
+        { k: "玄関ホール", h: "げんかんホール", r: "genkan hōru", m: "현관 홀", cat: "집구조", lvl: 2 },
+        { k: "暖炉", h: "だんろ", r: "danro", m: "벽난로", cat: "집구조", lvl: 2 },
+        { k: "バルコニー", h: "ばるこにー", r: "barukonī", m: "발코니", cat: "집구조", lvl: 2 },
+        { k: "テラス", h: "てらす", r: "terasu", m: "테라스", cat: "집구조", lvl: 2 },
+
+        { k: "携帯電話", h: "けいたいでんわ", r: "keitai denwa", m: "휴대전화", cat: "전자기기", lvl: 2 },
+        { k: "スマートフォン", h: "すまーとふぉん", r: "sumātofon", m: "스마트폰", cat: "전자기기", lvl: 2 },
+        { k: "パソコン", h: "ぱそこん", r: "pasokon", m: "컴퓨터", cat: "전자기기", lvl: 2 },
+        { k: "タブレット", h: "たぶれっと", r: "taburetto", m: "태블릿", cat: "전자기기", lvl: 2 },
+        { k: "テレビ", h: "てれび", r: "terebi", m: "텔레비전", cat: "전자기기", lvl: 2 },
+        { k: "ラジオ", h: "らじお", r: "rajio", m: "라디오", cat: "전자기기", lvl: 2 },
+        { k: "デジカメ", h: "でじかめ", r: "dejikame", m: "디지털 카메라", cat: "전자기기", lvl: 2 },
+        { k: "プリンター", h: "ぷりんたー", r: "purintā", m: "프린터", cat: "전자기기", lvl: 2 },
+        { k: "スピーカー", h: "すぴーかー", r: "supīkā", m: "스피커", cat: "전자기기", lvl: 2 },
+        { k: "ヘッドホン", h: "へっどほん", r: "heddohon", m: "헤드폰", cat: "전자기기", lvl: 2 },
+        { k: "イヤホン", h: "いやほん", r: "iyahon", m: "이어폰", cat: "전자기기", lvl: 2 },
+        { k: "ゲーム機", h: "げーむき", r: "gēmu ki", m: "게임기", cat: "전자기기", lvl: 2 },
+        { k: "スマートウォッチ", h: "すまーとうぉっち", r: "sumāto wocchi", m: "스마트워치", cat: "전자기기", lvl: 2 },
+        { k: "電子辞書", h: "でんしじしょ", r: "denshi jisho", m: "전자사전", cat: "전자기기", lvl: 2 },
+        { k: "ルーター", h: "るーたー", r: "rūtā", m: "라우터", cat: "전자기기", lvl: 2 },
+        { k: "Bluetooth", h: "ぶるーとぅーす", r: "burūtūsu", m: "블루투스", cat: "전자기기", lvl: 2 },
+        { k: "USBメモリ", h: "ゆーえすびーめもり", r: "yū esu bī memorī", m: "USB 메모리", cat: "전자기기", lvl: 2 },
+        { k: "モデム", h: "もでむ", r: "modemu", m: "모뎀", cat: "전자기기", lvl: 2 },
+        { k: "ハードディスク", h: "はーどでぃすく", r: "hādo disuku", m: "하드디스크", cat: "전자기기", lvl: 2 },
+        { k: "CDプレーヤー", h: "しーでぃーぷれーやー", r: "shīdī purēyā", m: "CD 플레이어", cat: "전자기기", lvl: 2 },
+
+        { k: "人形", h: "にんぎょう", r: "ningyō", m: "인형", cat: "장난감", lvl: 2 },
+        { k: "積み木", h: "つみき", r: "tsumiki", m: "쌓기 나무 블록", cat: "장난감", lvl: 2 },
+        { k: "ブロック", h: "ぶろっく", r: "burokku", m: "블록", cat: "장난감", lvl: 2 },
+        { k: "プラモデル", h: "ぷらもでる", r: "puramoderu", m: "프라모델", cat: "장난감", lvl: 2 },
+        { k: "ラジコン", h: "らじこん", r: "rajikon", m: "라디오 컨트롤 장난감", cat: "장난감", lvl: 2 },
+        { k: "パズル", h: "ぱずる", r: "pazuru", m: "퍼즐", cat: "장난감", lvl: 2 },
+        { k: "おもちゃの車", h: "おもちゃのくるま", r: "omocha no kuruma", m: "장난감 자동차", cat: "장난감", lvl: 2 },
+        { k: "ヨーヨー", h: "よーよー", r: "yōyō", m: "요요", cat: "장난감", lvl: 2 },
+        { k: "風船", h: "ふうせん", r: "fūsen", m: "풍선", cat: "장난감", lvl: 2 },
+        { k: "水鉄砲", h: "みずでっぽう", r: "mizudeppō", m: "물총", cat: "장난감", lvl: 2 },
+        { k: "けん玉", h: "けんだま", r: "kendama", m: "켄다마", cat: "장난감", lvl: 2 },
+        { k: "ブランコ", h: "ぶらんこ", r: "buranko", m: "그네", cat: "장난감", lvl: 2 },
+        { k: "スクーター", h: "すくーたー", r: "sukūtā", m: "스쿠터(킥보드)", cat: "장난감", lvl: 2 },
+        { k: "フリスビー", h: "ふりすびー", r: "furisubī", m: "프리스비", cat: "장난감", lvl: 2 },
+        { k: "風車", h: "かざぐるま", r: "kazaguruma", m: "풍차", cat: "장난감", lvl: 2 },
+        { k: "ビーズ", h: "びーず", r: "bīzu", m: "비즈", cat: "장난감", lvl: 2 },
+        { k: "輪投げ", h: "わなげ", r: "wanage", m: "고리 던지기", cat: "장난감", lvl: 2 },
+        { k: "木馬", h: "もくば", r: "mokuba", m: "목마", cat: "장난감", lvl: 2 },
+        { k: "ラジオ", h: "らじお", r: "rajio", m: "라디오", cat: "장난감", lvl: 2 },
+        { k: "ボール", h: "ぼーる", r: "bōru", m: "공", cat: "장난감", lvl: 2 },
+        { k: "トランプ", h: "とらんぷ", r: "toranpu", m: "트럼프 카드", cat: "장난감", lvl: 2 },
+        { k: "ロボット", h: "ろぼっと", r: "robotto", m: "로봇", cat: "장난감", lvl: 2 },
+        { k: "おままごとセット", h: "おままごとせっと", r: "omamagoto setto", m: "놀이용 주방세트", cat: "장난감", lvl: 2 },
+        { k: "ビデオゲーム", h: "びでおげーむ", r: "bideo gēmu", m: "비디오 게임", cat: "장난감", lvl: 2 },
+        { k: "けん玉", h: "けんだま", r: "kendama", m: "켄다마(일본 전통 장난감)", cat: "장난감", lvl: 2 },
+        { k: "ヨーヨー", h: "よーよー", r: "yōyō", m: "요요", cat: "장난감", lvl: 2 },
+        { k: "キックボード", h: "きっくぼーど", r: "kikkubōdo", m: "킥보드", cat: "장난감", lvl: 2 },
+        { k: "ラジコンカー", h: "らじこんかー", r: "rajikonkā", m: "무선조종 자동차", cat: "장난감", lvl: 2 },
+        { k: "水鉄砲", h: "みずでっぽう", r: "mizudeppō", m: "물총", cat: "장난감", lvl: 2 },
+        { k: "チョーク", h: "ちょーく", r: "chōku", m: "분필", cat: "장난감", lvl: 2 },
+        { k: "風船ガム", h: "ふうせんがむ", r: "fūsen gamu", m: "풍선껌", cat: "장난감", lvl: 2 },
+
+        { k: "裁縫針", h: "さいほうばり", r: "saihōbari", m: "재봉 바늘", cat: "재봉", lvl: 2 },
+        { k: "糸", h: "いと", r: "ito", m: "실", cat: "재봉", lvl: 2 },
+        { k: "針山", h: "はりやま", r: "hariyama", m: "시침꽂이", cat: "재봉", lvl: 2 },
+        { k: "裁縫ばさみ", h: "さいほうばさみ", r: "saihōbasami", m: "재봉 가위", cat: "재봉", lvl: 2 },
+        { k: "メジャー", h: "めじゃー", r: "mejā", m: "줄자", cat: "재봉", lvl: 2 },
+        { k: "チャコペン", h: "ちゃこぺん", r: "chakopen", m: "재봉용 분필펜", cat: "재봉", lvl: 2 },
+        { k: "ボタン", h: "ぼたん", r: "botan", m: "단추", cat: "재봉", lvl: 2 },
+        { k: "ミシン", h: "みしん", r: "mishin", m: "재봉틀", cat: "재봉", lvl: 2 },
+        { k: "アイロン", h: "あいろん", r: "airon", m: "다리미", cat: "재봉", lvl: 2 },
+        { k: "裁ちばさみ", h: "たちばさみ", r: "tachibasami", m: "원단 가위", cat: "재봉", lvl: 2 },
+        { k: "ピン", h: "ぴん", r: "pin", m: "핀", cat: "재봉", lvl: 2 },
+        { k: "リッパー", h: "りっぱー", r: "rippā", m: "실밥 제거기", cat: "재봉", lvl: 2 },
+        { k: "まち針", h: "まちばり", r: "machibari", m: "시침핀", cat: "재봉", lvl: 2 },
+        { k: "糸巻き", h: "いとまき", r: "itomaki", m: "실뭉치", cat: "재봉", lvl: 2 },
+        { k: "布地", h: "ぬのじ", r: "nunoji", m: "천", cat: "재봉", lvl: 2 },
+
+        { k: "蝶", h: "ちょう", r: "chō", m: "나비", i: "🦋", cat: "곤충", lvl: 2 },
+        { k: "蜂", h: "はち", r: "hachi", m: "벌", i: "🐝", cat: "곤충", lvl: 2 },
+        { k: "蟻", h: "あり", r: "ari", m: "개미", i: "🐜", cat: "곤충", lvl: 2 },
+        { k: "蟋蟀", h: "こおろぎ", r: "kōrogi", m: "귀뚜라미", i: "🦗", cat: "곤충", lvl: 2 },
+        { k: "螽斯", h: "きりぎりす", r: "kirigirisu", m: "귀뚜라미 종류", i: "🦗", cat: "곤충", lvl: 2 },
+        { k: "蝶蛾", h: "ちょうが", r: "chōga", m: "나방", i: "🦋", cat: "곤충", lvl: 2 },
+        { k: "甲虫", h: "かぶとむし", r: "kabutomushi", m: "사슴벌레", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "カマキリ", h: "かまきり", r: "kamakiri", m: "사마귀", i: "🕷️", cat: "곤충", lvl: 2 },
+        { k: "蚊", h: "か", r: "ka", m: "모기", i: "🦟", cat: "곤충", lvl: 2 },
+        { k: "蝉", h: "せみ", r: "semi", m: "매미", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "蠍", h: "さそり", r: "sasori", m: "전갈", i: "🦂", cat: "곤충", lvl: 2 },
+        { k: "蛾", h: "が", r: "ga", m: "나방", i: "🦋", cat: "곤충", lvl: 2 },
+        { k: "テントウムシ", h: "てんとうむし", r: "tentōmushi", m: "무당벌레", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "シロアリ", h: "しろあり", r: "shiroari", m: "흰개미", i: "🐜", cat: "곤충", lvl: 2 },
+        { k: "ハチ", h: "はち", r: "hachi", m: "말벌", i: "🐝", cat: "곤충", lvl: 2 },
+        { k: "トラカミキリ", h: "とらかみきり", r: "torakamikiri", m: "호랑이 사마귀", i: "🕷️", cat: "곤충", lvl: 2 },
+        { k: "ミツバチ", h: "みつばち", r: "mitsubachi", m: "꿀벌", i: "🐝", cat: "곤충", lvl: 2 },
+        { k: "コガネムシ", h: "こがねむし", r: "koganemushi", m: "금풍뎅이", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "ヒメカメノコハムシ", h: "ひめかめのこはむし", r: "hime kamenoko hamushi", m: "작은쇠풍뎅이", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "クモ", h: "くも", r: "kumo", m: "거미", i: "🕷️", cat: "곤충", lvl: 2 },
+        { k: "トンボ", h: "とんぼ", r: "tonbo", m: "잠자리", i: "🐉", cat: "곤충", lvl: 2 },
+        { k: "ゲンゴロウ", h: "げんごろう", r: "gengorō", m: "수영벌레", i: "", cat: "곤충", lvl: 2 },
+        { k: "バッタ", h: "ばった", r: "batta", m: "메뚜기", i: "🦗", cat: "곤충", lvl: 2 },
+        { k: "オサムシ", h: "おさむし", r: "osamushi", m: "등에벌레", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "トビケラ", h: "とびけら", r: "tobikera", m: "잎벌레", i: "", cat: "곤충", lvl: 2 },
+        { k: "ヒラタクワガタ", h: "ひらたくわがた", r: "hiratakuwa gata", m: "장수풍뎅이", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "カブトムシ", h: "かぶとむし", r: "kabutomushi", m: "투구벌레", i: "🐞", cat: "곤충", lvl: 2 },
+        { k: "ホタル", h: "ほたる", r: "hotaru", m: "반딧불이", i: "🐞", cat: "곤충", lvl: 2 },
+
+        { k: "言語", h: "げんご", r: "gengo", m: "언어", cat: "언어", lvl: 2 },
+        { k: "日本語", h: "にほんご", r: "nihongo", m: "일본어", cat: "언어", lvl: 2 },
+        { k: "英語", h: "えいご", r: "eigo", m: "영어", cat: "언어", lvl: 2 },
+        { k: "韓国語", h: "かんこくご", r: "kankokugo", m: "한국어", cat: "언어", lvl: 2 },
+        { k: "中国語", h: "ちゅうごくご", r: "chūgokugo", m: "중국어", cat: "언어", lvl: 2 },
+        { k: "フランス語", h: "ふらんすご", r: "furansugo", m: "프랑스어", cat: "언어", lvl: 2 },
+        { k: "スペイン語", h: "すぺいんご", r: "supeingo", m: "스페인어", cat: "언어", lvl: 2 },
+        { k: "ドイツ語", h: "どいつご", r: "doitsugo", m: "독일어", cat: "언어", lvl: 2 },
+        { k: "ロシア語", h: "ろしあご", r: "roshiago", m: "러시아어", cat: "언어", lvl: 2 },
+        { k: "語彙", h: "ごい", r: "goi", m: "어휘", cat: "언어", lvl: 2 },
+        { k: "文法", h: "ぶんぽう", r: "bunpō", m: "문법", cat: "언어", lvl: 2 },
+        { k: "発音", h: "はつおん", r: "hatsuon", m: "발음", cat: "언어", lvl: 2 },
+        { k: "会話", h: "かいわ", r: "kaiwa", m: "회화", cat: "언어", lvl: 2 },
+        { k: "言葉", h: "ことば", r: "kotoba", m: "말, 단어", cat: "언어", lvl: 2 },
+        { k: "母語", h: "ぼご", r: "bogo", m: "모국어", cat: "언어", lvl: 2 },
+        { k: "外国語", h: "がいこくご", r: "gaikokugo", m: "외국어", cat: "언어", lvl: 2 },
+        { k: "翻訳", h: "ほんやく", r: "honyaku", m: "번역", cat: "언어", lvl: 2 },
+        { k: "通訳", h: "つうやく", r: "tsūyaku", m: "통역", cat: "언어", lvl: 2 },
+        { k: "書く", h: "かく", r: "kaku", m: "쓰다", cat: "언어", lvl: 2 },
+        { k: "読む", h: "よむ", r: "yomu", m: "읽다", cat: "언어", lvl: 2 },
+        { k: "聞く", h: "きく", r: "kiku", m: "듣다", cat: "언어", lvl: 2 },
+        { k: "話す", h: "はなす", r: "hanasu", m: "말하다", cat: "언어", lvl: 2 },
+        { k: "単語", h: "たんご", r: "tango", m: "단어", cat: "언어", lvl: 2 },
+        { k: "表現", h: "ひょうげん", r: "hyōgen", m: "표현", cat: "언어", lvl: 2 },
+        { k: "意味", h: "いみ", r: "imi", m: "의미", cat: "언어", lvl: 2 },
+        { k: "文", h: "ぶん", r: "bun", m: "문장", cat: "언어", lvl: 2 },
+        { k: "文章", h: "ぶんしょう", r: "bunshō", m: "글, 문장", cat: "언어", lvl: 2 },
+        { k: "辞書", h: "じしょ", r: "jisho", m: "사전", cat: "언어", lvl: 2 },
+        { k: "習う", h: "ならう", r: "narau", m: "배우다", cat: "언어", lvl: 2 },
+        { k: "教える", h: "おしえる", r: "oshieru", m: "가르치다", cat: "언어", lvl: 2 },
+
+
+
+
+        // 레벨 3 풀 (41~60 스테이지용)
+        { k: "ピアノ", h: "ぴあの", r: "piano", m: "피아노", i: "🎹", cat: "악기", lvl: 3 },
+        { k: "ギター", h: "ぎたー", r: "gitā", m: "기타", i: "🎸", cat: "악기", lvl: 3 },
+        { k: "バイオリン", h: "ばいおりん", r: "baiorin", m: "바이올린", i: "🎻", cat: "악기", lvl: 3 },
+        { k: "ドラム", h: "どらむ", r: "doramu", m: "드럼", i: "🥁", cat: "악기", lvl: 3 },
+        { k: "フルート", h: "ふるーと", r: "furūto", m: "플루트", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "サックス", h: "さっくす", r: "sakkusu", m: "색소폰", i: "🎷", cat: "악기", lvl: 3 },
+        { k: "トランペット", h: "とらんぺっと", r: "toranpetto", m: "트럼펫", i: "🎺", cat: "악기", lvl: 3 },
+        { k: "クラリネット", h: "くらりねっと", r: "kurarinetto", m: "클라리넷", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "ホルン", h: "ほるん", r: "horun", m: "호른", i: "🎺", cat: "악기", lvl: 3 },
+        { k: "チェロ", h: "ちぇろ", r: "chero", m: "첼로", i: "🎻", cat: "악기", lvl: 3 },
+        { k: "オーボエ", h: "おーぼえ", r: "ōboe", m: "오보에", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "ティンパニ", h: "てぃんぱに", r: "tinpani", m: "팀파니", i: "🥁", cat: "악기", lvl: 3 },
+        { k: "ハープ", h: "はーぷ", r: "hāpu", m: "하프", i: "🎵", cat: "악기", lvl: 3 },
+        { k: "バンジョー", h: "ばんじょー", r: "banjō", m: "밴조", i: "🎸", cat: "악기", lvl: 3 },
+        { k: "マンドリン", h: "まんどりん", r: "mandorin", m: "만돌린", i: "🎸", cat: "악기", lvl: 3 },
+        { k: "カスタネット", h: "かすたねっと", r: "kasutanetto", m: "카스타넷", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "カホン", h: "かほん", r: "kahon", m: "카혼", i: "🥁", cat: "악기", lvl: 3 },
+        { k: "シンバル", h: "しんばる", r: "shinbaru", m: "심벌즈", i: "🥁", cat: "악기", lvl: 3 },
+        { k: "ボンゴ", h: "ぼんご", r: "bongo", m: "봉고", i: "🥁", cat: "악기", lvl: 3 },
+        { k: "コンガ", h: "こんが", r: "konga", m: "콩가", i: "🥁", cat: "악기", lvl: 3 },
+        { k: "アコーディオン", h: "あこーでぃおん", r: "akōdion", m: "아코디언", i: "🎹", cat: "악기", lvl: 3 },
+        { k: "シタール", h: "したーる", r: "shitāru", m: "시타르", i: "🎸", cat: "악기", lvl: 3 },
+        { k: "ウクレレ", h: "うくれれ", r: "ukulele", m: "우쿨렐레", i: "🎸", cat: "악기", lvl: 3 },
+        { k: "ディジュリドゥ", h: "でぃじゅりどぅ", r: "dijuridū", m: "디저리두", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "タンバリン", h: "たんばりん", r: "tanbarin", m: "탬버린", i: "🥁", cat: "악기", lvl: 3 },
+        { k: "カリンバ", h: "かりんば", r: "karinba", m: "칼림바", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "トライ앵글", h: "とらいあんぐる", r: "toraianguru", m: "트라이앵글", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "トロンボーン", h: "とろんぼーん", r: "toronbōn", m: "트롬본", i: "🎺", cat: "악기", lvl: 3 },
+        { k: "バスーン", h: "ばすーん", r: "basūn", m: "바순", i: "🎶", cat: "악기", lvl: 3 },
+        { k: "オルガン", h: "おるがん", r: "orugan", m: "오르간", i: "🎹", cat: "악기", lvl: 3 },
+        { k: "クラヴィコード", h: "くらゔぃこーど", r: "kuravikōdo", m: "클라비코드", i: "🎹", cat: "악기", lvl: 3 },
+
+
+        { k: "宇宙", h: "うちゅう", r: "uchū", m: "우주", i: "🌌", cat: "우주", lvl: 3 },
+        { k: "惑星", h: "わくせい", r: "wakusei", m: "행성", i: "🪐", cat: "우주", lvl: 3 },
+        { k: "恒星", h: "こうせい", r: "kōsei", m: "항성", i: "⭐", cat: "우주", lvl: 3 },
+        { k: "衛星", h: "えいせい", r: "eisei", m: "위성", i: "🌙", cat: "우주", lvl: 3 },
+        { k: "ブラックホール", h: "ぶらっくほーる", r: "burakku hōru", m: "블랙홀", i: "🕳️", cat: "우주", lvl: 3 },
+        { k: "銀河", h: "ぎんが", r: "ginga", m: "은하", i: "🌌", cat: "우주", lvl: 3 },
+        { k: "流星", h: "りゅうせい", r: "ryūsei", m: "유성", i: "☄️", cat: "우주", lvl: 3 },
+        { k: "宇宙船", h: "うちゅうせん", r: "uchūsen", m: "우주선", i: "🚀", cat: "우주", lvl: 3 },
+        { k: "宇宙飛行士", h: "うちゅうひこうし", r: "uchū hikōshi", m: "우주 비행사", i: "👨‍🚀", cat: "우주", lvl: 3 },
+        { k: "隕石", h: "いんせき", r: "inseki", m: "운석", i: "🪨", cat: "우주", lvl: 3 },
+        { k: "コスモス", h: "こすもす", r: "kosumosu", m: "우주, 코스모스", i: "🌌", cat: "우주", lvl: 3 },
+        { k: "星雲", h: "せいうん", r: "seiun", m: "성운", i: "☁️", cat: "우주", lvl: 3 },
+        { k: "宇宙基地", h: "うちゅうきち", r: "uchū kichi", m: "우주 기지", i: "🏭", cat: "우주", lvl: 3 },
+        { k: "宇宙ステーション", h: "うちゅうすてーしょん", r: "uchū sutēshon", m: "우주 정거장", i: "🛰️", cat: "우주", lvl: 3 },
+        { k: "衛星軌道", h: "えいせいきどう", r: "eisei kidō", m: "위성 궤도", i: "", cat: "우주", lvl: 3 },
+        { k: "望遠鏡", h: "ぼうえんきょう", r: "bōenkyō", m: "망원경", i: "🔭", cat: "우주", lvl: 3 },
+        { k: "宇宙服", h: "うちゅうふく", r: "uchūfuku", m: "우주복", i: "🧑‍🚀", cat: "우주", lvl: 3 },
+        { k: "宇宙ゴミ", h: "うちゅうごみ", r: "uchū gomi", m: "우주 쓰레기", i: "", cat: "우주", lvl: 3 },
+        { k: "太陽", h: "たいよう", r: "taiyō", m: "태양", i: "☀️", cat: "우주", lvl: 3 },
+        { k: "太陽系", h: "たいようけい", r: "taiyōkei", m: "태양계", i: "🌞", cat: "우주", lvl: 3 },
+        { k: "隕石帯", h: "いんせきたい", r: "insekitei", m: "운석대", i: "☄️", cat: "우주", lvl: 3 },
+        { k: "コメット", h: "こめっと", r: "kometto", m: "혜성", i: "☄️", cat: "우주", lvl: 3 },
+        { k: "スペースシャトル", h: "すぺーすしゃとる", r: "supēsu shatoru", m: "우주 왕복선", i: "🚀", cat: "우주", lvl: 3 },
+        { k: "惑星探査機", h: "わくせいたんさき", r: "wakusei tansaki", m: "행성 탐사기", i: "🛰️", cat: "우주", lvl: 3 },
+        { k: "宇宙望遠鏡", h: "うちゅうぼうえんきょう", r: "uchū bōenkyō", m: "우주 망원경", i: "🔭", cat: "우주", lvl: 3 },
+        { k: "彗星", h: "すいせい", r: "suisei", m: "혜성", i: "☄️", cat: "우주", lvl: 3 },
+        { k: "宇宙線", h: "うちゅうせん", r: "uchūsen", m: "우주선", i: "🚀", cat: "우주", lvl: 3 },
+        { k: "暗黒物質", h: "あんこくぶっしつ", r: "ankoku busshitsu", m: "암흑 물질", i: "🌑", cat: "우주", lvl: 3 },
+        { k: "スペースデブリ", h: "すぺーすでぶり", r: "supēsu deburi", m: "우주 잔해", i: "☄️", cat: "우주", lvl: 3 },
+        { k: "重力", h: "じゅうりょく", r: "jūryoku", m: "중력", i: "🌍", cat: "우주", lvl: 3 },
+
+
+        { k: "歴史", h: "れきし", r: "rekishi", m: "역사", cat: "역사", lvl: 3 },
+        { k: "古代", h: "こだい", r: "kodai", m: "고대", cat: "역사", lvl: 3 },
+        { k: "中世", h: "ちゅうせい", r: "chūsei", m: "중세", cat: "역사", lvl: 3 },
+        { k: "近代", h: "きんだい", r: "kindai", m: "근대", cat: "역사", lvl: 3 },
+        { k: "現代", h: "げんだい", r: "gendai", m: "현대", cat: "역사", lvl: 3 },
+        { k: "王朝", h: "おうちょう", r: "ōchō", m: "왕조", cat: "역사", lvl: 3 },
+        { k: "戦争", h: "せんそう", r: "sensō", m: "전쟁", cat: "역사", lvl: 3 },
+        { k: "革命", h: "かくめい", r: "kakumei", m: "혁명", cat: "역사", lvl: 3 },
+        { k: "歴代", h: "れきだい", r: "rekidai", m: "역대", cat: "역사", lvl: 3 },
+        { k: "遺跡", h: "いせき", r: "iseki", m: "유적", cat: "역사", lvl: 3 },
+        { k: "文化遺産", h: "ぶんかいさん", r: "bunka isan", m: "문화유산", cat: "역사", lvl: 3 },
+        { k: "資料", h: "しりょう", r: "shiryou", m: "자료", cat: "역사", lvl: 3 },
+        { k: "文書", h: "ぶんしょ", r: "bunsho", m: "문서", cat: "역사", lvl: 3 },
+        { k: "年代", h: "ねんだい", r: "nendai", m: "연대", cat: "역사", lvl: 3 },
+        { k: "史跡", h: "しせき", r: "shiseki", m: "사적", cat: "역사", lvl: 3 },
+        { k: "英雄", h: "えいゆう", r: "eiyū", m: "영웅", cat: "역사", lvl: 3 },
+        { k: "伝説", h: "でんせつ", r: "densetsu", m: "전설", cat: "역사", lvl: 3 },
+        { k: "王", h: "おう", r: "ō", m: "왕", cat: "역사", lvl: 3 },
+        { k: "統治", h: "とうち", r: "tōchi", m: "통치", cat: "역사", lvl: 3 },
+
+        { k: "技術", h: "ぎじゅつ", r: "gijutsu", m: "기술", cat: "기술과 미디어", lvl: 3 },
+        { k: "情報", h: "じょうほう", r: "jōhō", m: "정보", cat: "기술과 미디어", lvl: 3 },
+        { k: "コンピューター", h: "こんぴゅーたー", r: "konpyūtā", m: "컴퓨터", cat: "기술과 미디어", lvl: 3 },
+        { k: "インターネット", h: "いんたーねっと", r: "intānetto", m: "인터넷", cat: "기술과 미디어", lvl: 3 },
+        { k: "プログラム", h: "ぷろぐらむ", r: "puroguramu", m: "프로그램", cat: "기술과 미디어", lvl: 3 },
+        { k: "データ", h: "でーた", r: "dēta", m: "데이터", cat: "기술과 미디어", lvl: 3 },
+        { k: "ネットワーク", h: "ねっとわーく", r: "nettowāku", m: "네트워크", cat: "기술과 미디어", lvl: 3 },
+        { k: "アップロード", h: "あっぷろーど", r: "appurōdo", m: "업로드", cat: "기술과 미디어", lvl: 3 },
+        { k: "ダウンロード", h: "だうんろーど", r: "daunrōdo", m: "다운로드", cat: "기술과 미디어", lvl: 3 },
+        { k: "ファイル", h: "ふぁいる", r: "fairu", m: "파일", cat: "기술과 미디어", lvl: 3 },
+        { k: "ソフトウェア", h: "そふとうぇあ", r: "sofutouea", m: "소프트웨어", cat: "기술과 미디어", lvl: 3 },
+        { k: "ハードウェア", h: "はーどうぇあ", r: "hādouea", m: "하드웨어", cat: "기술과 미디어", lvl: 3 },
+        { k: "プログラミング", h: "ぷろぐらみんぐ", r: "puroguramingu", m: "프로그래밍", cat: "기술과 미디어", lvl: 3 },
+        { k: "ウェブサイト", h: "うぇぶさいと", r: "webusaito", m: "웹사이트", cat: "기술과 미디어", lvl: 3 },
+        { k: "スマートフォン", h: "すまーとふぉん", r: "sumātofon", m: "스마트폰", cat: "기술과 미디어", lvl: 3 },
+        { k: "ソーシャルメディア", h: "そーしゃるめでぃあ", r: "sōsharumedia", m: "소셜 미디어", cat: "기술과 미디어", lvl: 3 },
+        { k: "プラットフォーム", h: "ぷらっとふぉーむ", r: "purattofōmu", m: "플랫폼", cat: "기술과 미디어", lvl: 3 },
+        { k: "アップデート", h: "あっぷでーと", r: "appudēto", m: "업데이트", cat: "기술과 미디어", lvl: 3 },
+        { k: "セキュリティ", h: "せきゅりてぃ", r: "sekyuriti", m: "보안", cat: "기술과 미디어", lvl: 3 },
+        { k: "ウイルス", h: "ういるす", r: "uirusu", m: "바이러스", cat: "기술과 미디어", lvl: 3 },
+        { k: "クラウド", h: "くらうど", r: "kuraudo", m: "클라우드", cat: "기술과 미디어", lvl: 3 },
+        { k: "プライバシー", h: "ぷらいばしー", r: "puraibashī", m: "프라이버시", cat: "기술과 미디어", lvl: 3 },
+        { k: "アルゴリズム", h: "あるごりずむ", r: "arugorizumu", m: "알고리즘", cat: "기술과 미디어", lvl: 3 },
+        { k: "ハッキング", h: "はっきんぐ", r: "hakkingu", m: "해킹", cat: "기술과 미디어", lvl: 3 },
+        { k: "サーバー", h: "さーばー", r: "sābā", m: "서버", cat: "기술과 미디어", lvl: 3 },
+        { k: "ブログ", h: "ぶろぐ", r: "burogu", m: "블로그", cat: "기술과 미디어", lvl: 3 },
+        { k: "ライブストリーム", h: "らいぶすとりーむ", r: "raibu sutorīmu", m: "라이브 스트림", cat: "기술과 미디어", lvl: 3 },
+        { k: "ポッドキャスト", h: "ぽっどきゃすと", r: "poddokyasuto", m: "팟캐스트", cat: "기술과 미디어", lvl: 3 },
+        { k: "バーチャルリアリティ", h: "ばーちゃるりありてぃ", r: "bācharu riariti", m: "가상 현실", cat: "기술과 미디어", lvl: 3 },
+        { k: "ドローン", h: "どろーん", r: "dorōn", m: "드론", cat: "기술과 미디어", lvl: 3 },
+
+
+        { k: "春", h: "はる", r: "haru", m: "봄", cat: "계절", lvl: 3 },
+        { k: "夏", h: "なつ", r: "natsu", m: "여름", cat: "계절", lvl: 3 },
+        { k: "秋", h: "あき", r: "aki", m: "가을", cat: "계절", lvl: 3 },
+        { k: "冬", h: "ふゆ", r: "fuyu", m: "겨울", cat: "계절", lvl: 3 },
+        { k: "春分", h: "しゅんぶん", r: "shunbun", m: "춘분", cat: "계절", lvl: 3 },
+        { k: "夏至", h: "げし", r: "geshi", m: "하지", cat: "계절", lvl: 3 },
+        { k: "秋分", h: "しゅうぶん", r: "shūbun", m: "추분", cat: "계절", lvl: 3 },
+        { k: "冬至", h: "とうじ", r: "tōji", m: "동지", cat: "계절", lvl: 3 },
+        { k: "花見", h: "はなみ", r: "hanami", m: "꽃구경", cat: "계절", lvl: 3 },
+        { k: "紅葉", h: "こうよう", r: "kōyō", m: "단풍", cat: "계절", lvl: 3 },
+
+        { k: "夏休み", h: "なつやすみ", r: "natsuyasumi", m: "여름방학", cat: "여름방학", lvl: 3 },
+        { k: "海水浴", h: "かいすいよく", r: "kaisuiyoku", m: "해수욕", cat: "여름방학", lvl: 3 },
+        { k: "花火大会", h: "はなびたいかい", r: "hanabi taikai", m: "불꽃놀이 대회", cat: "여름방학", lvl: 3 },
+        { k: "キャンプ", h: "きゃんぷ", r: "kyanpu", m: "캠핑", cat: "여름방학", lvl: 3 },
+        { k: "自由研究", h: "じゆうけんきゅう", r: "jiyū kenkyū", m: "자유 연구", cat: "여름방학", lvl: 3 },
+        { k: "旅行", h: "りょこう", r: "ryokō", m: "여행", cat: "여름방학", lvl: 3 },
+        { k: "宿題", h: "しゅくだい", r: "shukudai", m: "숙제", cat: "여름방학", lvl: 3 },
+        { k: "プール", h: "ぷーる", r: "pūru", m: "수영장", cat: "여름방학", lvl: 3 },
+        { k: "夏祭り", h: "なつまつり", r: "natsumatsuri", m: "여름 축제", cat: "여름방학", lvl: 3 },
+        { k: "アイスクリーム", h: "あいすくりーむ", r: "aisukurīmu", m: "아이스크림", cat: "여름방학", lvl: 3 },
+
+        { k: "冬休み", h: "ふゆやすみ", r: "fuyuyasumi", m: "겨울방학", cat: "겨울방학", lvl: 3 },
+        { k: "雪遊び", h: "ゆきあそび", r: "yuki asobi", m: "눈놀이", cat: "겨울방학", lvl: 3 },
+        { k: "こたつ", h: "こたつ", r: "kotatsu", m: "온돌 탁자(난방 식탁)", cat: "겨울방학", lvl: 3 },
+        { k: "スキー", h: "すきー", r: "sukī", m: "스키", cat: "겨울방학", lvl: 3 },
+        { k: "暖房", h: "だんぼう", r: "danbō", m: "난방", cat: "겨울방학", lvl: 3 },
+        { k: "年末年始", h: "ねんまつねんし", r: "nenmatsu nenshi", m: "연말연시", cat: "겨울방학", lvl: 3 },
+        { k: "お正月", h: "おしょうがつ", r: "oshōgatsu", m: "설날", cat: "겨울방학", lvl: 3 },
+        { k: "宿題", h: "しゅくだい", r: "shukudai", m: "숙제", cat: "겨울방학", lvl: 3 },
+        { k: "凧揚げ", h: "たこあげ", r: "takoage", m: "연날리기", cat: "겨울방학", lvl: 3 },
+
+        { k: "晴れ", h: "はれ", r: "hare", m: "맑음", i: "☀️", cat: "날씨", lvl: 3 },
+        { k: "曇り", h: "くもり", r: "kumori", m: "흐림", i: "☁️", cat: "날씨", lvl: 3 },
+        { k: "雨", h: "あめ", r: "ame", m: "비", i: "🌧️", cat: "날씨", lvl: 3 },
+        { k: "雪", h: "ゆき", r: "yuki", m: "눈", i: "❄️", cat: "날씨", lvl: 3 },
+        { k: "雷", h: "かみなり", r: "kaminari", m: "천둥", i: "⚡", cat: "날씨", lvl: 3 },
+        { k: "霧", h: "きり", r: "kiri", m: "안개", i: "🌫️", cat: "날씨", lvl: 3 },
+        { k: "風", h: "かぜ", r: "kaze", m: "바람", i: "💨", cat: "날씨", lvl: 3 },
+        { k: "台風", h: "たいふう", r: "taifū", m: "태풍", i: "🌀", cat: "날씨", lvl: 3 },
+        { k: "霜", h: "しも", r: "shimo", m: "서리", i: "❄️", cat: "날씨", lvl: 3 },
+        { k: "熱波", h: "ねっぱ", r: "neppa", m: "열파", i: "🔥", cat: "날씨", lvl: 3 },
+        { k: "豪雨", h: "ごうう", r: "gōu", m: "호우", i: "🌧️", cat: "날씨", lvl: 3 },
+        { k: "快晴", h: "かいせい", r: "kaisei", m: "맑고 쾌청함", i: "☀️", cat: "날씨", lvl: 3 },
+        { k: "小雨", h: "こさめ", r: "kosame", m: "가랑비", i: "🌦️", cat: "날씨", lvl: 3 },
+        { k: "夕立", h: "ゆうだち", r: "yūdachi", m: "소나기", i: "🌧️", cat: "날씨", lvl: 3 },
+        { k: "雪崩", h: "なだれ", r: "nadare", m: "눈사태", i: "❄️", cat: "날씨", lvl: 3 },
+        { k: "霧雨", h: "きりさめ", r: "kirisame", m: "안개비", i: "🌫️", cat: "날씨", lvl: 3 },
+        { k: "乾燥", h: "かんそう", r: "kansō", m: "건조", i: "🔥", cat: "날씨", lvl: 3 },
+        { k: "湿気", h: "しっけ", r: "shikke", m: "습기", i: "💧", cat: "날씨", lvl: 3 },
+        { k: "吹雪", h: "ふぶき", r: "fubuki", m: "눈보라", i: "❄️", cat: "날씨", lvl: 3 },
+        { k: "湿度", h: "しつど", r: "shitsudo", m: "습도", i: "💧", cat: "날씨", lvl: 3 },
+        { k: "気温", h: "きおん", r: "kion", m: "기온", i: "🌡️", cat: "날씨", lvl: 3 },
+        { k: "霜柱", h: "しもばしら", r: "shimobashira", m: "서릿발", i: "❄️", cat: "날씨", lvl: 3 },
+        { k: "熱帯夜", h: "ねったいや", r: "nettaiya", m: "열대야", i: "🌙", cat: "날씨", lvl: 3 },
+        { k: "晴天", h: "せいてん", r: "seiten", m: "청명한 날씨", i: "☀️", cat: "날씨", lvl: 3 },
+        { k: "薄曇り", h: "うすぐもり", r: "usugumori", m: "연무", i: "🌫️", cat: "날씨", lvl: 3 },
+        { k: "雷雨", h: "らいう", r: "raiu", m: "뇌우", i: "⛈️", cat: "날씨", lvl: 3 },
+        { k: "寒波", h: "かんぱ", r: "kanpa", m: "한파", i: "❄️", cat: "날씨", lvl: 3 },
+        { k: "天気予報", h: "てんきよほう", r: "tenki yohō", m: "일기예보", i: "📡", cat: "날씨", lvl: 3 },
+
+        { k: "頭", h: "あたま", r: "atama", m: "머리", i: "🧠", cat: "신체", lvl: 3 },
+        { k: "目", h: "め", r: "me", m: "눈", i: "👁️", cat: "신체", lvl: 3 },
+        { k: "鼻", h: "はな", r: "hana", m: "코", i: "👃", cat: "신체", lvl: 3 },
+        { k: "口", h: "くち", r: "kuchi", m: "입", i: "👄", cat: "신체", lvl: 3 },
+        { k: "耳", h: "みみ", r: "mimi", m: "귀", i: "👂", cat: "신체", lvl: 3 },
+        { k: "首", h: "くび", r: "kubi", m: "목", i: "🦴", cat: "신체", lvl: 3 },
+        { k: "肩", h: "かた", r: "kata", m: "어깨", i: "🦾", cat: "신체", lvl: 3 },
+        { k: "腕", h: "うで", r: "ude", m: "팔", i: "💪", cat: "신체", lvl: 3 },
+        { k: "手", h: "て", r: "te", m: "손", i: "✋", cat: "신체", lvl: 3 },
+        { k: "指", h: "ゆび", r: "yubi", m: "손가락", i: "☝️", cat: "신체", lvl: 3 },
+        { k: "胸", h: "むね", r: "mune", m: "가슴", i: "🫀", cat: "신체", lvl: 3 },
+        { k: "腹", h: "はら", r: "hara", m: "배", i: "🤰", cat: "신체", lvl: 3 },
+        { k: "腰", h: "こし", r: "koshi", m: "허리", i: "🦴", cat: "신체", lvl: 3 },
+        { k: "背中", h: "せなか", r: "senaka", m: "등", i: "🦴", cat: "신체", lvl: 3 },
+        { k: "脚", h: "あし", r: "ashi", m: "다리", i: "🦵", cat: "신체", lvl: 3 },
+        { k: "膝", h: "ひざ", r: "hiza", m: "무릎", i: "🦵", cat: "신체", lvl: 3 },
+        { k: "足", h: "あし", r: "ashi", m: "발", i: "🦶", cat: "신체", lvl: 3 },
+        { k: "心臓", h: "しんぞう", r: "shinzō", m: "심장", i: "💓", cat: "신체", lvl: 3 },
+        { k: "肺", h: "はい", r: "hai", m: "폐", i: "🫁", cat: "신체", lvl: 3 },
+        { k: "脳", h: "のう", r: "nō", m: "뇌", i: "🧠", cat: "신체", lvl: 3 },
+        { k: "肝臓", h: "かんぞう", r: "kanzō", m: "간", i: "🫀", cat: "신체", lvl: 3 },
+        { k: "膀胱", h: "ぼうこう", r: "bōkō", m: "방광", i: "🫀", cat: "신체", lvl: 3 },
+        { k: "腎臓", h: "じんぞう", r: "jinzō", m: "신장", i: "🫀", cat: "신체", lvl: 3 },
+        { k: "胃", h: "い", r: "i", m: "위", i: "🫀", cat: "신체", lvl: 3 },
+        { k: "皮膚", h: "ひふ", r: "hifu", m: "피부", i: "🧴", cat: "신체", lvl: 3 },
+        { k: "筋肉", h: "きんにく", r: "kinniku", m: "근육", i: "💪", cat: "신체", lvl: 3 },
+        { k: "骨", h: "ほね", r: "hone", m: "뼈", i: "🦴", cat: "신체", lvl: 3 },
+        { k: "혈管", h: "けっかん", r: "kekkan", m: "혈관", i: "🩸", cat: "신체", lvl: 3 },
+        { k: "神経", h: "しんけい", r: "shinkei", m: "신경", i: "⚡", cat: "신체", lvl: 3 },
+
+        { k: "机", h: "つくえ", r: "tsukue", m: "책상", i: "🪑", cat: "교실", lvl: 3 },
+        { k: "椅子", h: "いす", r: "isu", m: "의자", i: "🪑", cat: "교실", lvl: 3 },
+        { k: "黒板", h: "こくばん", r: "kokuban", m: "칠판", i: "⬛", cat: "교실", lvl: 3 },
+        { k: "ホワイトボード", h: "ほわいとぼーど", r: "howaitobōdo", m: "화이트보드", i: "⬜", cat: "교실", lvl: 3 },
+        { k: "教科書", h: "きょうかしょ", r: "kyōkasho", m: "교과서", i: "📚", cat: "교실", lvl: 3 },
+        { k: "ノート", h: "のーと", r: "nōto", m: "공책", i: "📒", cat: "교실", lvl: 3 },
+        { k: "ペン", h: "ぺん", r: "pen", m: "펜", i: "🖊️", cat: "교실", lvl: 3 },
+        { k: "鉛筆", h: "えんぴつ", r: "enpitsu", m: "연필", i: "✏️", cat: "교실", lvl: 3 },
+        { k: "消しゴム", h: "けしごむ", r: "keshigomu", m: "지우개", i: "🩹", cat: "교실", lvl: 3 },
+        { k: "定規", h: "じょうぎ", r: "jōgi", m: "자", i: "📏", cat: "교실", lvl: 3 },
+        { k: "はさみ", h: "はさみ", r: "hasami", m: "가위", i: "✂️", cat: "교실", lvl: 3 },
+        { k: "のり", h: "のり", r: "nori", m: "풀(접착제)", i: "🟫", cat: "교실", lvl: 3 },
+        { k: "紙", h: "かみ", r: "kami", m: "종이", i: "📄", cat: "교실", lvl: 3 },
+        { k: "時計", h: "とけい", r: "tokei", m: "시계", i: "⏰", cat: "교실", lvl: 3 },
+        { k: "照明", h: "しょうめい", r: "shōmei", m: "조명", i: "💡", cat: "교실", lvl: 3 },
+        { k: "窓", h: "まど", r: "mado", m: "창문", i: "🪟", cat: "교실", lvl: 3 },
+        { k: "カーテン", h: "かーてん", r: "kāten", m: "커튼", i: "🟫", cat: "교실", lvl: 3 },
+        { k: "ドア", h: "どあ", r: "doa", m: "문", i: "🚪", cat: "교실", lvl: 3 },
+        { k: "掲示板", h: "けいじばん", r: "keijiban", m: "게시판", i: "📋", cat: "교실", lvl: 3 },
+        { k: "ゴミ箱", h: "ごみばこ", r: "gomibako", m: "휴지통", i: "🗑️", cat: "교실", lvl: 3 },
+        { k: "パソコン", h: "ぱそこん", r: "pasokon", m: "컴퓨터", i: "💻", cat: "교실", lvl: 3 },
+        { k: "プロジェクター", h: "ぷろじぇくたー", r: "purojekutā", m: "프로젝터", i: "📽️", cat: "교실", lvl: 3 },
+        { k: "スピーカー", h: "すぴーかー", r: "supīkā", m: "스피커", i: "🔈", cat: "교실", lvl: 3 },
+        { k: "マイク", h: "まいく", r: "maiku", m: "마이크", i: "🎤", cat: "교실", lvl: 3 },
+        { k: "教壇", h: "きょうだん", r: "kyōdan", m: "교단", i: "🎤", cat: "교실", lvl: 3 },
+        { k: "本棚", h: "ほんだな", r: "hondana", m: "책장", i: "📚", cat: "교실", lvl: 3 },
+        { k: "椅子席", h: "いすせき", r: "isuseki", m: "좌석", i: "💺", cat: "교실", lvl: 3 },
+        { k: "掲示物", h: "けいじぶつ", r: "keijibutsu", m: "게시물", i: "📌", cat: "교실", lvl: 3 },
+        { k: "温度計", h: "おんどけい", r: "ondokei", m: "온도계", i: "🌡️", cat: "교실", lvl: 3 },
+        { k: "換気扇", h: "かんきせん", r: "kankisen", m: "환풍기", i: "🌀", cat: "교실", lvl: 3 },
+
+        { k: "皿", h: "さら", r: "sara", m: "접시", i: "🍽️", cat: "주방", lvl: 3 },
+        { k: "包丁", h: "ほうちょう", r: "hōchō", m: "칼", i: "🔪", cat: "주방", lvl: 3 },
+        { k: "箸", h: "はし", r: "hashi", m: "젓가락", i: "🥢", cat: "주방", lvl: 3 },
+        { k: "鍋", h: "なべ", r: "nabe", m: "냄비", i: "🍲", cat: "주방", lvl: 3 },
+        { k: "フライパン", h: "ふらいぱん", r: "furaipan", m: "프라이팬", i: "🍳", cat: "주방", lvl: 3 },
+        { k: "スプーン", h: "すぷーん", r: "supūn", m: "숟가락", i: "🥄", cat: "주방", lvl: 3 },
+        { k: "フォーク", h: "ふぉーく", r: "fōku", m: "포크", i: "🍴", cat: "주방", lvl: 3 },
+        { k: "ティーポット", h: "てぃーぽっと", r: "tīpotto", m: "찻주전자", i: "🍵", cat: "주방", lvl: 3 },
+        { k: "グラス", h: "ぐらす", r: "gurasu", m: "유리잔", i: "🥛", cat: "주방", lvl: 3 },
+        { k: "鍋敷き", h: "なべしき", r: "nabeshiki", m: "냄비받침", i: "🧺", cat: "주방", lvl: 3 },
+        { k: "まな板", h: "まないた", r: "manaita", m: "도마", i: "🔪", cat: "주방", lvl: 3 },
+        { k: "おたま", h: "おたま", r: "otama", m: "국자", i: "🥄", cat: "주방", lvl: 3 },
+        { k: "ざる", h: "ざる", r: "zaru", m: "채반", i: "🧺", cat: "주방", lvl: 3 },
+        { k: "箸置き", h: "はしおき", r: "hashioki", m: "젓가락 받침", i: "🥢", cat: "주방", lvl: 3 },
+        { k: "鍋蓋", h: "なべぶた", r: "nabebuta", m: "냄비뚜껑", i: "🍲", cat: "주방", lvl: 3 },
+        { k: "キッチンタオル", h: "きっちんたおる", r: "kicchin taoru", m: "주방 수건", i: "🧻", cat: "주방", lvl: 3 },
+        { k: "食器洗い機", h: "しょっきあらいき", r: "shokki araiki", m: "식기세척기", i: "🧼", cat: "주방", lvl: 3 },
+        { k: "トング", h: "とんぐ", r: "tongu", m: "집게", i: "🔗", cat: "주방", lvl: 3 },
+        { k: "バターナイフ", h: "ばたーないふ", r: "batā naifu", m: "버터 칼", i: "🔪", cat: "주방", lvl: 3 },
+        { k: "おろし金", h: "おろしがね", r: "oroshigane", m: "강판", i: "🧊", cat: "주방", lvl: 3 },
+        { k: "ミキサー", h: "みきさー", r: "mikisaa", m: "믹서기", i: "🥤", cat: "주방", lvl: 3 },
+        { k: "泡立て器", h: "あわだてき", r: "awadateki", m: "거품기", i: "🥄", cat: "주방", lvl: 3 },
+        { k: "しゃもじ", h: "しゃもじ", r: "shamoji", m: "밥주걱", i: "🥄", cat: "주방", lvl: 3 },
+        { k: "炊飯器", h: "すいはんき", r: "suihanki", m: "밥솥", i: "🍚", cat: "주방", lvl: 3 },
+        { k: "電子レンジ", h: "でんしれんじ", r: "denshirenji", m: "전자레인지", i: "📡", cat: "주방", lvl: 3 },
+        { k: "調理器具", h: "ちょうりきぐ", r: "chōrikigu", m: "조리기구", i: "🍳", cat: "주방", lvl: 3 },
+        { k: "フライ返し", h: "ふらいがえし", r: "furaigaeshi", m: "뒤집개", i: "🍳", cat: "주방", lvl: 3 },
+        { k: "鍋つかみ", h: "なべつかみ", r: "nabetsukami", m: "냄비장갑", i: "🧤", cat: "주방", lvl: 3 },
+        { k: "計量カップ", h: "けいりょうかっぷ", r: "keiryō kappu", m: "계량컵", i: "🥛", cat: "주방", lvl: 3 },
+        { k: "キッチンスケール", h: "きっちんすけーる", r: "kicchin sukēru", m: "주방저울", i: "⚖️", cat: "주방", lvl: 3 },
+
+        { k: "料理", h: "りょうり", r: "ryōri", m: "요리", cat: "일상생활", lvl: 3 },
+        { k: "洗濯", h: "せんたく", r: "sentaku", m: "빨래", cat: "일상생활", lvl: 3 },
+        { k: "掃除", h: "そうじ", r: "souji", m: "청소", cat: "일상생활", lvl: 3 },
+        { k: "入浴", h: "にゅうよく", r: "nyūyoku", m: "목욕", cat: "일상생활", lvl: 3 },
+        { k: "洗顔", h: "せんがん", r: "sengan", m: "세안", cat: "일상생활", lvl: 3 },
+        { k: "歯磨き", h: "はみがき", r: "hamigaki", m: "양치질", cat: "일상생활", lvl: 3 },
+        { k: "休憩", h: "きゅうけい", r: "kyūkei", m: "휴식", cat: "일상생활", lvl: 3 },
+        { k: "睡眠", h: "すいみん", r: "suimin", m: "수면", cat: "일상생활", lvl: 3 },
+        { k: "散歩", h: "さんぽ", r: "sanpo", m: "산책", cat: "일상생활", lvl: 3 },
+        { k: "運動", h: "うんどう", r: "undō", m: "운동", cat: "일상생활", lvl: 3 },
+        { k: "勉強", h: "べんきょう", r: "benkyō", m: "공부", cat: "일상생활", lvl: 3 },
+        { k: "休み", h: "やすみ", r: "yasumi", m: "휴일", cat: "일상생활", lvl: 3 },
+        { k: "会話", h: "かいわ", r: "kaiwa", m: "대화", cat: "일상생활", lvl: 3 },
+        { k: "笑顔", h: "えがお", r: "egao", m: "미소", cat: "일상생활", lvl: 3 },
+        { k: "買い物", h: "かいもの", r: "kaimono", m: "쇼핑", cat: "일상생활", lvl: 3 },
+        { k: "準備", h: "じゅんび", r: "junbi", m: "준비", cat: "일상생활", lvl: 3 },
+
+        { k: "鏡", h: "かがみ", r: "kagami", m: "거울", cat: "파우치", lvl: 3 },
+        { k: "リップクリーム", h: "りっぷくりーむ", r: "rippukurīmu", m: "립밤", cat: "파우치", lvl: 3 },
+        { k: "ハンドクリーム", h: "はんどくりーむ", r: "handokurīmu", m: "핸드크림", cat: "파우치", lvl: 3 },
+        { k: "ティッシュ", h: "てぃっしゅ", r: "tisshu", m: "티슈", cat: "파우치", lvl: 3 },
+        { k: "サニタリーナプキン", h: "さにたりーなぷきん", r: "sanitarī napukin", m: "생리대", cat: "파우치", lvl: 3 },
+        { k: "目薬", h: "めぐすり", r: "megusuri", m: "안약", cat: "파우치", lvl: 3 },
+        { k: "絆創膏", h: "ばんそうこう", r: "bansōkō", m: "반창고", cat: "파우치", lvl: 3 },
+        { k: "爪切り", h: "つめきり", r: "tsumekiri", m: "손톱깎이", cat: "파우치", lvl: 3 },
+        { k: "香水", h: "こうすい", r: "kōsui", m: "향수", cat: "파우치", lvl: 3 },
+        { k: "整髪料", h: "せいはつりょう", r: "seihatsuryō", m: "헤어젤", cat: "파우치", lvl: 3 },
+        { k: "リップスティック", h: "りっぷすてぃっく", r: "rippusutikk", m: "립스틱", cat: "파우치", lvl: 3 },
+        { k: "口紅", h: "くちべに", r: "kuchibeni", m: "립글로스", cat: "파우치", lvl: 3 },
+        { k: "ピン", h: "ぴん", r: "pin", m: "핀", cat: "파우치", lvl: 3 },
+        { k: "ミラー", h: "みらー", r: "mirā", m: "탈부착 거울", cat: "파우치", lvl: 3 },
+        { k: "綿棒", h: "めんぼう", r: "menbō", m: "면봉", cat: "파우치", lvl: 3 },
+        { k: "カード", h: "かーど", r: "kādo", m: "카드", cat: "파우치", lvl: 3 },
+        { k: "現金", h: "げんきん", r: "genkin", m: "현금", cat: "파우치", lvl: 3 },
+        { k: "鍵", h: "かぎ", r: "kagi", m: "열쇠", cat: "파우치", lvl: 3 },
+        { k: "薬", h: "くすり", r: "kusuri", m: "약", cat: "파우치", lvl: 3 },
+        { k: "イヤホン", h: "いやほん", r: "iyahon", m: "이어폰", cat: "파우치", lvl: 3 },
+
+        { k: "化粧品", h: "けしょうひん", r: "keshōhin", m: "화장품", cat: "뷰티", lvl: 3 },
+        { k: "ファンデーション", h: "ふぁんでーしょん", r: "fandēshon", m: "파운데이션", cat: "뷰티", lvl: 3 },
+        { k: "口紅", h: "くちべに", r: "kuchibeni", m: "립스틱", cat: "뷰티", lvl: 3 },
+        { k: "マスカラ", h: "ますから", r: "masukara", m: "마스카라", cat: "뷰티", lvl: 3 },
+        { k: "アイシャドウ", h: "あいしゃどう", r: "aishadō", m: "아이섀도우", cat: "뷰티", lvl: 3 },
+        { k: "チーク", h: "ちーく", r: "chīku", m: "치크(블러셔)", cat: "뷰티", lvl: 3 },
+        { k: "化粧水", h: "けしょうすい", r: "keshōsui", m: "스킨로션", cat: "뷰티", lvl: 3 },
+        { k: "乳液", h: "にゅうえき", r: "nyūeki", m: "에멀전", cat: "뷰티", lvl: 3 },
+        { k: "美容液", h: "びようえき", r: "biyoeki", m: "에센스", cat: "뷰티", lvl: 3 },
+        { k: "日焼け止め", h: "ひやけどめ", r: "hiyakedome", m: "자외선 차단제", cat: "뷰티", lvl: 3 },
+        { k: "クレンジング", h: "くれんじんぐ", r: "kurenjingu", m: "클렌징", cat: "뷰티", lvl: 3 },
+        { k: "洗顔料", h: "せんがんりょう", r: "senganryō", m: "세안제", cat: "뷰티", lvl: 3 },
+        { k: "パック", h: "ぱっく", r: "pakku", m: "팩", cat: "뷰티", lvl: 3 },
+        { k: "化粧筆", h: "けしょうふで", r: "keshōfude", m: "화장붓", cat: "뷰티", lvl: 3 },
+        { k: "アイライナー", h: "あいらいなー", r: "airainā", m: "아이라이너", cat: "뷰티", lvl: 3 },
+        { k: "コンシーラー", h: "こんしーらー", r: "konshīrā", m: "컨실러", cat: "뷰티", lvl: 3 },
+        { k: "リップクリーム", h: "りっぷくりーむ", r: "rippukurīmu", m: "립밤", cat: "뷰티", lvl: 3 },
+        { k: "ヘアオイル", h: "へあおいる", r: "heaoiru", m: "헤어 오일", cat: "뷰티", lvl: 3 },
+        { k: "ヘアスプレー", h: "へあすぷれー", r: "heasupurē", m: "헤어 스프레이", cat: "뷰티", lvl: 3 },
+        { k: "ボディローション", h: "ぼでぃろーしょん", r: "bodirōshon", m: "바디 로션", cat: "뷰티", lvl: 3 },
+
+        { k: "読書", h: "どくしょ", r: "dokusho", m: "독서", cat: "취미/여가", lvl: 3 },
+        { k: "音楽鑑賞", h: "おんがくかんしょう", r: "ongaku kanshō", m: "음악 감상", cat: "취미/여가", lvl: 3 },
+        { k: "映画鑑賞", h: "えいがかんしょう", r: "eiga kanshō", m: "영화 감상", cat: "취미/여가", lvl: 3 },
+        { k: "写真撮影", h: "しゃしんさつえい", r: "shashin satsuei", m: "사진 촬영", cat: "취미/여가", lvl: 3 },
+        { k: "料理", h: "りょうり", r: "ryōri", m: "요리", cat: "취미/여가", lvl: 3 },
+        { k: "手芸", h: "しゅげい", r: "shugei", m: "수예, 공예", cat: "취미/여가", lvl: 3 },
+        { k: "園芸", h: "えんげい", r: "engei", m: "원예", cat: "취미/여가", lvl: 3 },
+        { k: "旅行", h: "りょこう", r: "ryokō", m: "여행", cat: "취미/여가", lvl: 3 },
+        { k: "釣り", h: "つり", r: "tsuri", m: "낚시", cat: "취미/여가", lvl: 3 },
+        { k: "ジョギング", h: "じょぎんぐ", r: "jogingu", m: "조깅", cat: "취미/여가", lvl: 3 },
+        { k: "ダンス", h: "だんす", r: "dansu", m: "댄스", cat: "취미/여가", lvl: 3 },
+        { k: "ゲーム", h: "げーむ", r: "gēmu", m: "게임", cat: "취미/여가", lvl: 3 },
+        { k: "読書会", h: "どくしょかい", r: "dokusho kai", m: "독서 모임", cat: "취미/여가", lvl: 3 },
+        { k: "ヨガ", h: "よが", r: "yoga", m: "요가", cat: "취미/여가", lvl: 3 },
+        { k: "水泳", h: "すいえい", r: "suiei", m: "수영", cat: "취미/여가", lvl: 3 },
+
+        { k: "メニュー", h: "めにゅー", r: "menyū", m: "메뉴", cat: "식당 및 주문", lvl: 3 },
+        { k: "注文", h: "ちゅうもん", r: "chūmon", m: "주문", cat: "식당 및 주문", lvl: 3 },
+        { k: "料理", h: "りょうり", r: "ryōri", m: "요리", cat: "식당 및 주문", lvl: 3 },
+        { k: "店員", h: "てんいん", r: "ten’in", m: "점원", cat: "식당 및 주문", lvl: 3 },
+        { k: "予約", h: "よやく", r: "yoyaku", m: "예약", cat: "식당 및 주문", lvl: 3 },
+        { k: "会計", h: "かいけい", r: "kaikei", m: "계산", cat: "식당 및 주문", lvl: 3 },
+        { k: "セットメニュー", h: "せっとめにゅー", r: "setto menyū", m: "세트 메뉴", cat: "식당 및 주문", lvl: 3 },
+        { k: "デザート", h: "でざーと", r: "dezāto", m: "디저트", cat: "식당 및 주문", lvl: 3 },
+        { k: "おすすめ", h: "おすすめ", r: "osusume", m: "추천 메뉴", cat: "식당 및 주문", lvl: 3 },
+        { k: "おかわり", h: "おかわり", r: "okawari", m: "리필", cat: "식당 및 주문", lvl: 3 },
+        { k: "持ち帰り", h: "もちかえり", r: "mochikaeri", m: "포장", cat: "식당 및 주문", lvl: 3 },
+        { k: "禁煙席", h: "きんえんせき", r: "kin’enseki", m: "금연석", cat: "식당 및 주문", lvl: 3 },
+        { k: "喫煙席", h: "きつえんせき", r: "kitsuen seki", m: "흡연석", cat: "식당 및 주문", lvl: 3 },
+        { k: "特別注文", h: "とくべつちゅうもん", r: "tokubetsu chūmon", m: "특별 주문", cat: "식당 및 주문", lvl: 3 },
+        { k: "予約席", h: "よやくせき", r: "yoyaku seki", m: "예약석", cat: "식당 및 주문", lvl: 3 },
+        { k: "飲み物", h: "のみもの", r: "nomimono", m: "음료", cat: "식당 및 주문", lvl: 3 },
+        { k: "セット", h: "せっと", r: "setto", m: "세트", cat: "식당 및 주문", lvl: 3 },
+        { k: "サービス", h: "さーびす", r: "sābisu", m: "서비스", cat: "식당 및 주문", lvl: 3 },
+        { k: "割引", h: "わりびき", r: "waribiki", m: "할인", cat: "식당 및 주문", lvl: 3 },
+        { k: "食事券", h: "しょくじけん", r: "shokujiken", m: "식사권", cat: "식당 및 주문", lvl: 3 },
+
+        { k: "買い物", h: "かいもの", r: "kaimono", m: "쇼핑", cat: "쇼핑", lvl: 3 },
+        { k: "店", h: "みせ", r: "mise", m: "가게", cat: "쇼핑", lvl: 3 },
+        { k: "商品", h: "しょうひん", r: "shōhin", m: "상품", cat: "쇼핑", lvl: 3 },
+        { k: "値段", h: "ねだん", r: "nedan", m: "가격", cat: "쇼핑", lvl: 3 },
+        { k: "買う", h: "かう", r: "kau", m: "사다", cat: "쇼핑", lvl: 3 },
+        { k: "売る", h: "うる", r: "uru", m: "팔다", cat: "쇼핑", lvl: 3 },
+        { k: "支払い", h: "しはらい", r: "shiharai", m: "지불", cat: "쇼핑", lvl: 3 },
+        { k: "レジ", h: "れじ", r: "reji", m: "계산대", cat: "쇼핑", lvl: 3 },
+        { k: "割引", h: "わりびき", r: "waribiki", m: "할인", cat: "쇼핑", lvl: 3 },
+        { k: "返品", h: "へんぴん", r: "henpin", m: "반품", cat: "쇼핑", lvl: 3 },
+        { k: "試着", h: "しちゃく", r: "shichaku", m: "입어보다", cat: "쇼핑", lvl: 3 },
+        { k: "袋", h: "ふくろ", r: "fukuro", m: "봉투", cat: "쇼핑", lvl: 3 },
+        { k: "ポイントカード", h: "ぽいんとかーど", r: "pointo kādo", m: "포인트 카드", cat: "쇼핑", lvl: 3 },
+        { k: "セール", h: "せーる", r: "sēru", m: "세일", cat: "쇼핑", lvl: 3 },
+        { k: "ギフト", h: "ぎふと", r: "gifuto", m: "선물", cat: "쇼핑", lvl: 3 },
+        { k: "注文", h: "ちゅうもん", r: "chūmon", m: "주문", cat: "쇼핑", lvl: 3 },
+        { k: "配達", h: "はいたつ", r: "haitatsu", m: "배달", cat: "쇼핑", lvl: 3 },
+        { k: "返品交換", h: "へんぴんこうかん", r: "henpin kōkan", m: "반품 교환", cat: "쇼핑", lvl: 3 },
+        { k: "買い物かご", h: "かいものかご", r: "kaimono kago", m: "장바구니", cat: "쇼핑", lvl: 3 },
+        { k: "オンラインショップ", h: "おんらいんしょっぷ", r: "onrain shoppu", m: "온라인 쇼핑", cat: "쇼핑", lvl: 3 },
+
+
+
+
+
+        // 레벨 4 풀 (61~80 스테이지용)
+        
+        { k: "運動着", h: "うんどうぎ", r: "undōgi", m: "운동복", cat: "체육시간", lvl: 4 },
+        { k: "スポーツシューズ", h: "すぽーつしゅーず", r: "supōtsu shūzu", m: "운동화", cat: "체육시간", lvl: 4 },
+        { k: "水筒", h: "すいとう", r: "suitō", m: "물통", cat: "체육시간", lvl: 4 },
+        { k: "タオル", h: "たおる", r: "taoru", m: "수건", cat: "체육시간", lvl: 4 },
+        { k: "スポーツバッグ", h: "すぽーつばっぐ", r: "supōtsu baggu", m: "스포츠 가방", cat: "체육시간", lvl: 4 },
+        { k: "縄跳び", h: "なわとび", r: "nawatobi", m: "줄넘기", cat: "체육시간", lvl: 4 },
+        { k: "ボール", h: "ぼーる", r: "bōru", m: "공", cat: "체육시간", lvl: 4 },
+        { k: "バット", h: "ばっと", r: "batto", m: "배트", cat: "체육시간", lvl: 4 },
+        { k: "ラケット", h: "らけっと", r: "raketto", m: "라켓", cat: "체육시간", lvl: 4 },
+        { k: "ヘルメット", h: "へるめっと", r: "herumetto", m: "헬멧", cat: "체육시간", lvl: 4 },
+        { k: "ユニフォーム", h: "ゆにふぉーむ", r: "yunifōmu", m: "유니폼", cat: "체육시간", lvl: 4 },
+        { k: "ストップウォッチ", h: "すとっぷうぉっち", r: "sutoppu wocchi", m: "스톱워치", cat: "체육시간", lvl: 4 },
+        { k: "サッカー", h: "さっかー", r: "sakkā", m: "축구", cat: "체육시간", lvl: 4 },
+        { k: "バスケットボール", h: "ばすけっとぼーる", r: "basukettobōru", m: "농구", cat: "체육시간", lvl: 4 },
+        { k: "バレーボール", h: "ばれーぼーる", r: "barēbōru", m: "배구", cat: "체육시간", lvl: 4 },
+        { k: "陸上", h: "りくじょう", r: "rikujō", m: "육상", cat: "체육시간", lvl: 4 },
+        { k: "水泳", h: "すいえい", r: "suiei", m: "수영", cat: "체육시간", lvl: 4 },
+        { k: "体操", h: "たいそう", r: "taisō", m: "체조", cat: "체육시간", lvl: 4 },
+        { k: "マット", h: "まっと", r: "matto", m: "매트", cat: "체육시간", lvl: 4 },
+        { k: "トラック", h: "とらっく", r: "torakku", m: "트랙", cat: "체육시간", lvl: 4 },
+
+        { k: "野球", h: "やきゅう", r: "yakyū", m: "야구", cat: "스포츠", lvl: 4 },
+        { k: "サッカー", h: "さっかー", r: "sakkā", m: "축구", cat: "스포츠", lvl: 4 },
+        { k: "バスケットボール", h: "ばすけっとぼーる", r: "basukettobōru", m: "농구", cat: "스포츠", lvl: 4 },
+        { k: "テニス", h: "てにす", r: "tenisu", m: "테니스", cat: "스포츠", lvl: 4 },
+        { k: "ゴルフ", h: "ごるふ", r: "gorufu", m: "골프", cat: "스포츠", lvl: 4 },
+        { k: "水泳", h: "すいえい", r: "suiei", m: "수영", cat: "스포츠", lvl: 4 },
+        { k: "バレーボール", h: "ばれーぼーる", r: "barēbōru", m: "배구", cat: "스포츠", lvl: 4 },
+        { k: "陸上", h: "りくじょう", r: "rikujō", m: "육상", cat: "스포츠", lvl: 4 },
+        { k: "柔道", h: "じゅうどう", r: "jūdō", m: "유도", cat: "스포츠", lvl: 4 },
+        { k: "空手", h: "からて", r: "karate", m: "가라테", cat: "스포츠", lvl: 4 },
+        { k: "体操", h: "たいそう", r: "taisō", m: "체조", cat: "스포츠", lvl: 4 },
+        { k: "ラグビー", h: "らぐびー", r: "ragubī", m: "럭비", cat: "스포츠", lvl: 4 },
+        { k: "フィギュアスケート", h: "ふぃぎゅあすけーと", r: "figyua sukēto", m: "피겨 스케이트", cat: "스포츠", lvl: 4 },
+        { k: "スキー", h: "すきー", r: "sukī", m: "스키", cat: "스포츠", lvl: 4 },
+        { k: "スノーボード", h: "すのーぼーど", r: "sunōbōdo", m: "스노보드", cat: "스포츠", lvl: 4 },
+        { k: "卓球", h: "たっきゅう", r: "takkyū", m: "탁구", cat: "스포츠", lvl: 4 },
+        { k: "アイスホッケー", h: "あいすほっけー", r: "aisu hokkē", m: "아이스하키", cat: "스포츠", lvl: 4 },
+        { k: "柔術", h: "じゅうじゅつ", r: "jūjutsu", m: "주짓수", cat: "스포츠", lvl: 4 },
+        { k: "ウエイトリフティング", h: "うえいとりふてぃんぐ", r: "ueito rifutingu", m: "역도", cat: "스포츠", lvl: 4 },
+        { k: "フェンシング", h: "ふぇんしんぐ", r: "fenshingu", m: "펜싱", cat: "스포츠", lvl: 4 },
+        { k: "マラソン", h: "まらそん", r: "marason", m: "마라톤", cat: "스포츠", lvl: 4 },
+        { k: "サーフィン", h: "さーふぃん", r: "sāfin", m: "서핑", cat: "스포츠", lvl: 4 },
+        { k: "ボウリング", h: "ぼうりんぐ", r: "bōringu", m: "볼링", cat: "스포츠", lvl: 4 },
+        { k: "レスリング", h: "れすりんぐ", r: "resuringu", m: "레슬링", cat: "스포츠", lvl: 4 },
+        { k: "バドミントン", h: "ばどみんとん", r: "badominton", m: "배드민턴", cat: "스포츠", lvl: 4 },
+        { k: "ボクシング", h: "ぼくしんぐ", r: "bokushingu", m: "복싱", cat: "스포츠", lvl: 4 },
+        { k: "トライアスロン", h: "とらいあすろん", r: "toraiasuron", m: "트라이애슬론", cat: "스포츠", lvl: 4 },
+        { k: "스ケ이트ボ드", h: "すけーとぼーど", r: "sukētobōdo", m: "스케이트보드", cat: "스포츠", lvl: 4 },
+        { k: "クロ스カント리", h: "くろすかんとりー", r: "kurosu kantorī", m: "크로스컨트리", cat: "스포츠", lvl: 4 },
+        { k: "ダイビング", h: "だいびんぐ", r: "daibingu", m: "다이빙", cat: "스포츠", lvl: 4 },
+
+        { k: "絵", h: "え", r: "e", m: "그림", cat: "미술시간", lvl: 4 },
+        { k: "筆", h: "ふで", r: "fude", m: "붓", cat: "미술시간", lvl: 4 },
+        { k: "絵の具", h: "えのぐ", r: "enogu", m: "물감", cat: "미술시간", lvl: 4 },
+        { k: "カンバス", h: "かんばす", r: "kanbasu", m: "캔버스", cat: "미술시간", lvl: 4 },
+        { k: "パレット", h: "ぱれっと", r: "paretto", m: "팔레트", cat: "미술시간", lvl: 4 },
+        { k: "デッサン", h: "でっさん", r: "dessan", m: "스케치", cat: "미술시간", lvl: 4 },
+        { k: "スケッチブック", h: "すけっちぶっく", r: "suketchi bukku", m: "스케치북", cat: "미술시간", lvl: 4 },
+        { k: "絵筆", h: "えふで", r: "efude", m: "화필", cat: "미술시간", lvl: 4 },
+        { k: "濃淡", h: "のうたん", r: "noutan", m: "명암", cat: "미술시간", lvl: 4 },
+        { k: "遠近法", h: "えんきんほう", r: "enkinhō", m: "원근법", cat: "미술시간", lvl: 4 },
+        { k: "構図", h: "こうず", r: "kōzu", m: "구도", cat: "미술시간", lvl: 4 },
+        { k: "陰影", h: "いんえい", r: "inei", m: "음영", cat: "미술시간", lvl: 4 },
+        { k: "線", h: "せん", r: "sen", m: "선", cat: "미술시간", lvl: 4 },
+        { k: "形", h: "かたち", r: "katachi", m: "형태", cat: "미술시간", lvl: 4 },
+        { k: "色彩", h: "しきさい", r: "shikisai", m: "색채", cat: "미술시간", lvl: 4 },
+        { k: "美術館", h: "びじゅつかん", r: "bijutsukan", m: "미술관", cat: "미술시간", lvl: 4 },
+        { k: "造形", h: "ぞうけい", r: "zōkei", m: "조형", cat: "미술시간", lvl: 4 },
+        { k: "彫刻", h: "ちょうこく", r: "chōkoku", m: "조각", cat: "미술시간", lvl: 4 },
+        { k: "陶芸", h: "とうげい", r: "tōgei", m: "도예", cat: "미술시간", lvl: 4 },
+        { k: "版画", h: "はんが", r: "hanga", m: "판화", cat: "미술시간", lvl: 4 },
+
+        { k: "医者", h: "いしゃ", r: "isha", m: "의사", i: "🩺", cat: "직업", lvl: 4 },
+        { k: "弁護士", h: "べんごし", r: "bengoshi", m: "변호사", i: "⚖️", cat: "직업", lvl: 4 },
+        { k: "教師", h: "きょうし", r: "kyōshi", m: "교사", i: "🏫", cat: "직업", lvl: 4 },
+        { k: "看護師", h: "かんごし", r: "kangoshi", m: "간호사", i: "👩‍⚕️", cat: "직업", lvl: 4 },
+        { k: "警察官", h: "けいさつかん", r: "keisatsukan", m: "경찰관", i: "👮‍♂️", cat: "직업", lvl: 4 },
+        { k: "消防士", h: "しょうぼうし", r: "shōbōshi", m: "소방관", i: "🔥", cat: "직업", lvl: 4 },
+        { k: "エンジニア", h: "えんじにあ", r: "enjinia", m: "엔지니어", i: "🔧", cat: "직업", lvl: 4 },
+        { k: "プログラマー", h: "ぷろぐらまー", r: "puroguramā", m: "프로그래머", i: "💻", cat: "직업", lvl: 4 },
+        { k: "デザイナー", h: "でざいなー", r: "dezainā", m: "디자이너", i: "🎨", cat: "직업", lvl: 4 },
+        { k: "建築家", h: "けんちくか", r: "kenchikuka", m: "건축가", i: "🏗️", cat: "직업", lvl: 4 },
+        { k: "料理人", h: "りょうりにん", r: "ryōrinin", m: "요리사", i: "👨‍🍳", cat: "직업", lvl: 4 },
+        { k: "美容師", h: "びようし", r: "biyōshi", m: "미용사", i: "💇‍♀️", cat: "직업", lvl: 4 },
+        { k: "写真家", h: "しゃしんか", r: "shashinka", m: "사진가", i: "📷", cat: "직업", lvl: 4 },
+        { k: "作家", h: "さっか", r: "sakka", m: "작가", i: "✍️", cat: "직업", lvl: 4 },
+        { k: "俳優", h: "はいゆう", r: "haiyū", m: "배우", i: "🎭", cat: "직업", lvl: 4 },
+        { k: "翻訳者", h: "ほんやくしゃ", r: "honyakusha", m: "번역가", i: "🌐", cat: "직업", lvl: 4 },
+        { k: "編集者", h: "へんしゅうしゃ", r: "henshūsha", m: "편집자", i: "📖", cat: "직업", lvl: 4 },
+        { k: "ジャーナリスト", h: "じゃーなりすと", r: "jānarisuto", m: "기자", i: "📰", cat: "직업", lvl: 4 },
+        { k: "科学者", h: "かがくしゃ", r: "kagakusha", m: "과학자", i: "🔬", cat: "직업", lvl: 4 },
+        { k: "農家", h: "のうか", r: "nōka", m: "농부", i: "🌾", cat: "직업", lvl: 4 },
+        { k: "漁師", h: "りょうし", r: "ryōshi", m: "어부", i: "🎣", cat: "직업", lvl: 4 },
+        { k: "大工", h: "だいく", r: "daiku", m: "목수", i: "🪚", cat: "직업", lvl: 4 },
+        { k: "軍人", h: "ぐんじん", r: "gunjin", m: "군인", i: "🪖", cat: "직업", lvl: 4 },
+        { k: "政治家", h: "せいじか", r: "seijika", m: "정치가", i: "🏛️", cat: "직업", lvl: 4 },
+        { k: "投資家", h: "とうしか", r: "tōshika", m: "투자가", i: "💹", cat: "직업", lvl: 4 },
+        { k: "音楽家", h: "おんがくか", r: "ongakuka", m: "음악가", i: "🎼", cat: "직업", lvl: 4 },
+        { k: "データサイエンティスト", h: "でーたさいえんてぃすと", r: "dēta saientisuto", m: "데이터 과학자", i: "📊", cat: "직업", lvl: 4 },
+        { k: "通訳者", h: "つうやくしゃ", r: "tsūyakusha", m: "통역사", i: "🗣️", cat: "직업", lvl: 4 },
+
+        { k: "山", h: "やま", r: "yama", m: "산", i: "⛰️", cat: "자연", lvl: 4 },
+        { k: "川", h: "かわ", r: "kawa", m: "강", i: "🏞️", cat: "자연", lvl: 4 },
+        { k: "海", h: "うみ", r: "umi", m: "바다", i: "🌊", cat: "자연", lvl: 4 },
+        { k: "沼", h: "ぬま", r: "numa", m: "늪", i: "🦆", cat: "자연", lvl: 4 },
+        { k: "砂漠", h: "さばく", r: "sabaku", m: "사막", i: "🏜️", cat: "자연", lvl: 4 },
+        { k: "岩", h: "いわ", r: "iwa", m: "바위", i: "🪨", cat: "자연", lvl: 4 },
+        { k: "洞窟", h: "どうくつ", r: "dōkutsu", m: "동굴", i: "🕳️", cat: "자연", lvl: 4 },
+        { k: "山脈", h: "さんみゃく", r: "sanmyaku", m: "산맥", i: "🏔️", cat: "자연", lvl: 4 },
+        { k: "丘", h: "おか", r: "oka", m: "언덕", i: "🌄", cat: "자연", lvl: 4 },
+        { k: "谷", h: "たに", r: "tani", m: "계곡", i: "🏞️", cat: "자연", lvl: 4 },
+        { k: "裂け目", h: "さけめ", r: "sakeme", m: "균열, 틈", i: "🕳️", cat: "자연", lvl: 4 },
+        { k: "断崖", h: "だんがい", r: "dangai", m: "절벽", i: "🪨", cat: "자연", lvl: 4 },
+        { k: "丘陵", h: "きゅうりょう", r: "kyūryō", m: "구릉", i: "🌄", cat: "자연", lvl: 4 },
+        { k: "泥沼", h: "どろぬま", r: "doronuma", m: "진흙 늪", i: "🟫", cat: "자연", lvl: 4 },
+        { k: "湿地", h: "しっち", r: "shicchi", m: "습지", i: "🌾", cat: "자연", lvl: 4 },
+
+        { k: "東京", h: "とうきょう", r: "Tōkyō", m: "도쿄", cat: "도시", lvl: 4 },
+        { k: "大阪", h: "おおさか", r: "Ōsaka", m: "오사카", cat: "도시", lvl: 4 },
+        { k: "京都", h: "きょうと", r: "Kyōto", m: "교토", cat: "도시", lvl: 4 },
+        { k: "上海", h: "しゃんはい", r: "Shanhai", m: "상하이", cat: "도시", lvl: 4 },
+        { k: "北京", h: "ぺきん", r: "Pekin", m: "베이징", cat: "도시", lvl: 4 },
+        { k: "ニューヨーク", h: "にゅーよーく", r: "Nyūyōku", m: "뉴욕", cat: "도시", lvl: 4 },
+        { k: "ロンドン", h: "ろんどん", r: "Rondon", m: "런던", cat: "도시", lvl: 4 },
+        { k: "パリ", h: "ぱり", r: "Pari", m: "파리", cat: "도시", lvl: 4 },
+        { k: "バンコク", h: "ばんこく", r: "Bankoku", m: "방콕", cat: "도시", lvl: 4 },
+        { k: "シドニー", h: "しどにー", r: "Shidonī", m: "시드니", cat: "도시", lvl: 4 },
+        { k: "ローマ", h: "ろーま", r: "Rōma", m: "로마", cat: "도시", lvl: 4 },
+        { k: "モスクワ", h: "もすくわ", r: "Mosukuwa", m: "모스크바", cat: "도시", lvl: 4 },
+        { k: "ドバイ", h: "どばい", r: "Dobai", m: "두바이", cat: "도시", lvl: 4 },
+        { k: "ソウル", h: "そうる", r: "Sōru", m: "서울", cat: "도시", lvl: 4 },
+        { k: "バンクーバー", h: "ばんくーばー", r: "Bankūbā", m: "밴쿠버", cat: "도시", lvl: 4 },
+        { k: "リオデジャネイロ", h: "りおでじゃねいろ", r: "Riodejaneiro", m: "리우데자네이루", cat: "도시", lvl: 4 },
+        { k: "ベルリン", h: "べるりん", r: "Berurin", m: "베를린", cat: "도시", lvl: 4 },
+        { k: "マドリード", h: "まどりーど", r: "Madorīdo", m: "마드리드", cat: "도시", lvl: 4 },
+        { k: "メキシコシティ", h: "めきしこしてぃ", r: "Mekishiko Shiti", m: "멕시코 시티", cat: "도시", lvl: 4 },
+        { k: "イスタンブール", h: "いすたんぶーる", r: "Isutanbūru", m: "이스탄불", cat: "도시", lvl: 4 },
+        { k: "ロサンゼルス", h: "ろさんぜるす", r: "Rosanzerusu", m: "로스앤젤레스", cat: "도시", lvl: 4 },
+        { k: "ホノルル", h: "ほのるる", r: "Honoruru", m: "호놀룰루", cat: "도시", lvl: 4 },
+        { k: "シンガポール", h: "しんがぽーる", r: "Shingapōru", m: "싱가포르", cat: "도시", lvl: 4 },
+        { k: "バルセロナ", h: "ばるせろな", r: "Baruserona", m: "바르셀로나", cat: "도시", lvl: 4 },
+        { k: "チューリッヒ", h: "ちゅーりっひ", r: "Chūrihi", m: "취리히", cat: "도시", lvl: 4 },
+        { k: "ブエノスアイレス", h: "ぶえのすあいれす", r: "Buenosu Airesu", m: "부에노스아이레스", cat: "도시", lvl: 4 },
+        { k: "カイロ", h: "かいろ", r: "Kairo", m: "카이로", cat: "도시", lvl: 4 },
+        { k: "ハノイ", h: "はのい", r: "Hanoi", m: "하노이", cat: "도시", lvl: 4 },
+        { k: "メルボルン", h: "めるぼるん", r: "Meruborun", m: "멜버른", cat: "도시", lvl: 4 },
+        { k: "シカゴ", h: "しかご", r: "Shikago", m: "시카고", cat: "도시", lvl: 4 },
+        { k: "ブリュッセル", h: "ぶりゅっせる", r: "Buryusseru", m: "브뤼셀", cat: "도시", lvl: 4 },
+
+        { k: "韓国", h: "かんこく", r: "Kankoku", m: "한국", cat: "한국", lvl: 4 },
+        { k: "ソウル", h: "そうる", r: "Sōru", m: "서울", cat: "한국", lvl: 4 },
+        { k: "釜山", h: "ぷさん", r: "Pusan", m: "부산", cat: "한국", lvl: 4 },
+        { k: "キムチ", h: "きむち", r: "kimuchi", m: "김치", cat: "한국", lvl: 4 },
+        { k: "韓服", h: "はんぼく", r: "Hanboku", m: "한복", cat: "한국", lvl: 4 },
+        { k: "韓国語", h: "かんこくご", r: "Kankokugo", m: "한국어", cat: "한국", lvl: 4 },
+        { k: "ビビンバ", h: "びびんば", r: "bibinba", m: "비빔밥", cat: "한국", lvl: 4 },
+        { k: "トッポギ", h: "とっぽぎ", r: "toppogi", m: "떡볶이", cat: "한국", lvl: 4 },
+        { k: "プルコギ", h: "ぷるこぎ", r: "purukogi", m: "불고기", cat: "한국", lvl: 4 },
+        { k: "韓流", h: "かんりゅう", r: "Kanryū", m: "한류", cat: "한국", lvl: 4 },
+        { k: "太極旗", h: "たいきょくき", r: "Taikyokuki", m: "태극기", cat: "한국", lvl: 4 },
+        { k: "朝鮮王朝", h: "ちょうせんおうちょう", r: "Chōsen Ōchō", m: "조선왕조", cat: "한국", lvl: 4 },
+        { k: "独島", h: "どくとう", r: "Dokutō", m: "독도", cat: "한국", lvl: 4 },
+        { k: "韓国ドラマ", h: "かんこくドラマ", r: "Kankoku Dorama", m: "한국 드라마", cat: "한국", lvl: 4 },
+        { k: "K-POP", h: "けーぽっぷ", r: "Kē Poppu", m: "케이팝", cat: "한국", lvl: 4 },
+        { k: "ソジュ", h: "そじゅ", r: "Soju", m: "소주", cat: "한국", lvl: 4 },
+        { k: "カンジャンケジャン", h: "かんじゃんけじゃん", r: "Kanjang Kejan", m: "간장게장", cat: "한국", lvl: 4 },
+        { k: "韓国市場", h: "かんこくいちば", r: "Kankoku Ichiba", m: "한국 시장", cat: "한국", lvl: 4 },
+        { k: "伝統舞踊", h: "でんとうぶよう", r: "Dentō Buyō", m: "전통무용", cat: "한국", lvl: 4 },
+        { k: "電子マネー", h: "でんしまねー", r: "Denshi Manē", m: "전자화폐", cat: "한국", lvl: 4 },
+
+        { k: "病院", h: "びょういん", r: "byōin", m: "병원", cat: "병원/건강", lvl: 4 },
+        { k: "診察", h: "しんさつ", r: "shinsatsu", m: "진찰", cat: "병원/건강", lvl: 4 },
+        { k: "検査", h: "けんさ", r: "kensa", m: "검사", cat: "병원/건강", lvl: 4 },
+        { k: "予約", h: "よやく", r: "yoyaku", m: "예약", cat: "병원/건강", lvl: 4 },
+        { k: "受付", h: "うけつけ", r: "uketsuke", m: "접수", cat: "병원/건강", lvl: 4 },
+        { k: "薬局", h: "やっきょく", r: "yakkyoku", m: "약국", cat: "병원/건강", lvl: 4 },
+        { k: "処方箋", h: "しょほうせん", r: "shohōsen", m: "처방전", cat: "병원/건강", lvl: 4 },
+        { k: "健康診断", h: "けんこうしんだん", r: "kenkō shindan", m: "건강 진단", cat: "병원/건강", lvl: 4 },
+        { k: "救急車", h: "きゅうきゅうしゃ", r: "kyūkyūsha", m: "구급차", cat: "병원/건강", lvl: 4 },
+        { k: "看護師", h: "かんごし", r: "kangoshi", m: "간호사", cat: "병원/건강", lvl: 4 },
+        { k: "医師", h: "いし", r: "ishi", m: "의사", cat: "병원/건강", lvl: 4 },
+        { k: "注射", h: "ちゅうしゃ", r: "chūsha", m: "주사", cat: "병원/건강", lvl: 4 },
+        { k: "点滴", h: "てんてき", r: "tenteki", m: "점적(수액)", cat: "병원/건강", lvl: 4 },
+        { k: "手術", h: "しゅじゅつ", r: "shujutsu", m: "수술", cat: "병원/건강", lvl: 4 },
+        { k: "麻酔", h: "ますい", r: "masui", m: "마취", cat: "병원/건강", lvl: 4 },
+        { k: "主治医", h: "しゅじい", r: "shujii", m: "주치의", cat: "병원/건강", lvl: 4 },
+        { k: "入院", h: "にゅういん", r: "nyūin", m: "입원", cat: "병원/건강", lvl: 4 },
+        { k: "退院", h: "たいいん", r: "taiin", m: "퇴원", cat: "병원/건강", lvl: 4 },
+        { k: "症状", h: "しょうじょう", r: "shōjō", m: "증상", cat: "병원/건강", lvl: 4 },
+        { k: "治療", h: "ちりょう", r: "chiryou", m: "치료", cat: "병원/건강", lvl: 4 },
+        { k: "リハビリ", h: "りはびり", r: "rihabiri", m: "재활", cat: "병원/건강", lvl: 4 },
+        { k: "常備薬", h: "じょうびやく", r: "jōbiyaku", m: "상비약", cat: "병원/건강", lvl: 4 },
+        { k: "感染症", h: "かんせんしょう", r: "kansenshō", m: "감염증", cat: "병원/건강", lvl: 4 },
+        { k: "予防接種", h: "よぼうせっしゅ", r: "yobō sesshu", m: "예방접종", cat: "병원/건강", lvl: 4 },
+        { k: "内科", h: "ないか", r: "naika", m: "내과", cat: "병원/건강", lvl: 4 },
+        { k: "外科", h: "げか", r: "geka", m: "외과", cat: "병원/건강", lvl: 4 },
+        { k: "小児科", h: "しょうにか", r: "shōnika", m: "소아과", cat: "병원/건강", lvl: 4 },
+        { k: "皮膚科", h: "ひふか", r: "hifuka", m: "피부과", cat: "병원/건강", lvl: 4 },
+        { k: "精神科", h: "せいしんか", r: "seishinka", m: "정신과", cat: "병원/건강", lvl: 4 },
+        { k: "救命", h: "きゅうめい", r: "kyūmei", m: "응급구조", cat: "병원/건강", lvl: 4 },
+        { k: "カルテ", h: "かるて", r: "karute", m: "차트(진료기록)", cat: "병원/건강", lvl: 4 },
+
+        { k: "旅行", h: "りょこう", r: "ryokō", m: "여행", cat: "여행/숙박", lvl: 4 },
+        { k: "宿泊", h: "しゅくはく", r: "shukuhaku", m: "숙박", cat: "여행/숙박", lvl: 4 },
+        { k: "ホテル", h: "ほてる", r: "hoteru", m: "호텔", cat: "여행/숙박", lvl: 4 },
+        { k: "旅館", h: "りょかん", r: "ryokan", m: "일본식 여관", cat: "여행/숙박", lvl: 4 },
+        { k: "予約", h: "よやく", r: "yoyaku", m: "예약", cat: "여행/숙박", lvl: 4 },
+        { k: "チェックイン", h: "ちぇっくいん", r: "chekkuin", m: "체크인", cat: "여행/숙박", lvl: 4 },
+        { k: "チェックアウト", h: "ちぇっくあうと", r: "chekkuauto", m: "체크아웃", cat: "여행/숙박", lvl: 4 },
+        { k: "観光", h: "かんこう", r: "kankō", m: "관광", cat: "여행/숙박", lvl: 4 },
+        { k: "荷物", h: "にもつ", r: "nimotsu", m: "짐", cat: "여행/숙박", lvl: 4 },
+        { k: "地図", h: "ちず", r: "chizu", m: "지도", cat: "여행/숙박", lvl: 4 },
+        { k: "観光地", h: "かんこうち", r: "kankōchi", m: "관광지", cat: "여행/숙박", lvl: 4 },
+        { k: "案内", h: "あんない", r: "annai", m: "안내", cat: "여행/숙박", lvl: 4 },
+        { k: "パスポート", h: "ぱすぽーと", r: "pasupōto", m: "여권", cat: "여행/숙박", lvl: 4 },
+        { k: "飛行機", h: "ひこうき", r: "hikōki", m: "비행기", cat: "여행/숙박", lvl: 4 },
+        { k: "空港", h: "くうこう", r: "kūkō", m: "공항", cat: "여행/숙박", lvl: 4 },
+        { k: "交通", h: "こうつう", r: "kōtsū", m: "교통", cat: "여행/숙박", lvl: 4 },
+        { k: "公共交通機関", h: "こうきょうこうつうきかん", r: "kōkyō kōtsū kikan", m: "대중교통", cat: "여행/숙박", lvl: 4 },
+        { k: "タクシー", h: "たくしー", r: "takushī", m: "택시", cat: "여행/숙박", lvl: 4 },
+        { k: "電車", h: "でんしゃ", r: "densha", m: "전철", cat: "여행/숙박", lvl: 4 },
+        { k: "バス", h: "ばす", r: "basu", m: "버스", cat: "여행/숙박", lvl: 4 },
+        { k: "観光案内所", h: "かんこうあんないじょ", r: "kankō annaijo", m: "관광 안내소", cat: "여행/숙박", lvl: 4 },
+        { k: "旅程", h: "りょてい", r: "ryotei", m: "여정", cat: "여행/숙박", lvl: 4 },
+        { k: "持ち物", h: "もちもの", r: "mochimono", m: "지참품", cat: "여행/숙박", lvl: 4 },
+        { k: "ガイド", h: "がいど", r: "gaido", m: "가이드", cat: "여행/숙박", lvl: 4 },
+        { k: "観光バス", h: "かんこうばす", r: "kankō basu", m: "관광버스", cat: "여행/숙박", lvl: 4 },
+        { k: "レンタカー", h: "れんたかー", r: "rentakā", m: "렌터카", cat: "여행/숙박", lvl: 4 },
+        { k: "旅券", h: "りょけん", r: "ryoken", m: "여권(공식)", cat: "여행/숙박", lvl: 4 },
+        { k: "チェックリスト", h: "ちぇっくりすと", r: "chekkurisuto", m: "체크리스트", cat: "여행/숙박", lvl: 4 },
+        { k: "観光スポット", h: "かんこうすぽっと", r: "kankō supotto", m: "관광 명소", cat: "여행/숙박", lvl: 4 },
+        { k: "旅行保険", h: "りょこうほけん", r: "ryokō hoken", m: "여행 보험", cat: "여행/숙박", lvl: 4 },
+
+        { k: "牡羊座", h: "おひつじざ", r: "Ohitsujiza", m: "양자리", cat: "별자리", lvl: 4 },
+        { k: "牡牛座", h: "おうしざ", r: "Ōshiza", m: "황소자리", cat: "별자리", lvl: 4 },
+        { k: "双子座", h: "ふたござ", r: "Futagoza", m: "쌍둥이자리", cat: "별자리", lvl: 4 },
+        { k: "蟹座", h: "かにざ", r: "Kaniza", m: "게자리", cat: "별자리", lvl: 4 },
+        { k: "獅子座", h: "ししざ", r: "Shishiza", m: "사자자리", cat: "별자리", lvl: 4 },
+        { k: "乙女座", h: "おとめざ", r: "Otomeza", m: "처녀자리", cat: "별자리", lvl: 4 },
+        { k: "天秤座", h: "てんびんざ", r: "Tenbinza", m: "천칭자리", cat: "별자리", lvl: 4 },
+        { k: "蠍座", h: "さそりざ", r: "Sasoriza", m: "전갈자리", cat: "별자리", lvl: 4 },
+        { k: "射手座", h: "いてざ", r: "Iteza", m: "사수자리", cat: "별자리", lvl: 4 },
+        { k: "山羊座", h: "やぎざ", r: "Yagiza", m: "염소자리", cat: "별자리", lvl: 4 },
+        { k: "水瓶座", h: "みずがめざ", r: "Mizugameza", m: "물병자리", cat: "별자리", lvl: 4 },
+        { k: "魚座", h: "うおざ", r: "Uoza", m: "물고기자리", cat: "별자리", lvl: 4 },
+
+
+
+
+        // 레벨 5 풀 (81~100+ 스테이지용)
+
+        { k: "科学", h: "かがく", r: "kagaku", m: "과학", cat: "과학", lvl: 5 },
+        { k: "原子", h: "げんし", r: "genshi", m: "원자", cat: "과학", lvl: 5 },
+        { k: "分子", h: "ぶんし", r: "bunshi", m: "분자", cat: "과학", lvl: 5 },
+        { k: "細胞", h: "さいぼう", r: "saibō", m: "세포", cat: "과학", lvl: 5 },
+        { k: "重力", h: "じゅうりょく", r: "jūryoku", m: "중력", cat: "과학", lvl: 5 },
+        { k: "力学", h: "りきがく", r: "rikigaku", m: "역학", cat: "과학", lvl: 5 },
+        { k: "電気", h: "でんき", r: "denki", m: "전기", cat: "과학", lvl: 5 },
+        { k: "磁気", h: "じき", r: "jiki", m: "자기", cat: "과학", lvl: 5 },
+        { k: "波", h: "なみ", r: "nami", m: "파동", cat: "과학", lvl: 5 },
+        { k: "光", h: "ひかり", r: "hikari", m: "빛", cat: "과학", lvl: 5 },
+        { k: "音", h: "おと", r: "oto", m: "소리", cat: "과학", lvl: 5 },
+        { k: "エネルギー", h: "えねるぎー", r: "enerugī", m: "에너지", cat: "과학", lvl: 5 },
+        { k: "力", h: "ちから", r: "chikara", m: "힘", cat: "과학", lvl: 5 },
+        { k: "温度", h: "おんど", r: "ondo", m: "온도", cat: "과학", lvl: 5 },
+        { k: "圧力", h: "あつりょく", r: "atsuryoku", m: "압력", cat: "과학", lvl: 5 },
+        { k: "温度計", h: "おんどけい", r: "ondokei", m: "온도계", cat: "과학", lvl: 5 },
+        { k: "化学", h: "かがく", r: "kagaku", m: "화학", cat: "과학", lvl: 5 },
+        { k: "実験", h: "じっけん", r: "jikken", m: "실험", cat: "과학", lvl: 5 },
+        { k: "観察", h: "かんさつ", r: "kansatsu", m: "관찰", cat: "과학", lvl: 5 },
+        { k: "細菌", h: "さいきん", r: "saikin", m: "세균", cat: "과학", lvl: 5 },
+        { k: "ウイルス", h: "ういるす", r: "uirusu", m: "바이러스", cat: "과학", lvl: 5 },
+        { k: "DNA", h: "でぃーえぬえー", r: "dī enu ē", m: "DNA", cat: "과학", lvl: 5 },
+        { k: "遺伝子", h: "いでんし", r: "idenshi", m: "유전자", cat: "과학", lvl: 5 },
+        { k: "進化", h: "しんか", r: "shinka", m: "진화", cat: "과학", lvl: 5 },
+        { k: "生態系", h: "せいたいけい", r: "seitaikei", m: "생태계", cat: "과학", lvl: 5 },
+        { k: "環境", h: "かんきょう", r: "kankyō", m: "환경", cat: "과학", lvl: 5 },
+        { k: "惑星", h: "わくせい", r: "wakusei", m: "행성", cat: "과학", lvl: 5 },
+        { k: "銀河", h: "ぎんが", r: "ginga", m: "은하", cat: "과학", lvl: 5 },
+        { k: "重力波", h: "じゅうりょくは", r: "jūryokuha", m: "중력파", cat: "과학", lvl: 5 },
+        { k: "ブラックホール", h: "ぶらっくほーる", r: "burakku hōru", m: "블랙홀", cat: "과학", lvl: 5 },
+        { k: "量子", h: "りょうし", r: "ryōshi", m: "양자", cat: "과학", lvl: 5 },
+
+        { k: "化学", h: "かがく", r: "kagaku", m: "화학", cat: "화학", lvl: 5 },
+        { k: "原子", h: "げんし", r: "genshi", m: "원자", cat: "화학", lvl: 5 },
+        { k: "分子", h: "ぶんし", r: "bunshi", m: "분자", cat: "화학", lvl: 5 },
+        { k: "元素", h: "げんそ", r: "genso", m: "원소", cat: "화학", lvl: 5 },
+        { k: "化合物", h: "かごうぶつ", r: "kagōbutsu", m: "화합물", cat: "화학", lvl: 5 },
+        { k: "反応", h: "はんのう", r: "hannō", m: "반응", cat: "화학", lvl: 5 },
+        { k: "酸", h: "さん", r: "san", m: "산", cat: "화학", lvl: 5 },
+        { k: "塩基", h: "えんき", r: "enki", m: "염기", cat: "화학", lvl: 5 },
+        { k: "溶液", h: "ようえき", r: "yōeki", m: "용액", cat: "화학", lvl: 5 },
+        { k: "滴定", h: "てきてい", r: "tekitei", m: "적정", cat: "화학", lvl: 5 },
+        { k: "濃度", h: "のうど", r: "nōdo", m: "농도", cat: "화학", lvl: 5 },
+        { k: "分離", h: "ぶんり", r: "bunri", m: "분리", cat: "화학", lvl: 5 },
+        { k: "蒸発", h: "じょうはつ", r: "jōhatsu", m: "증발", cat: "화학", lvl: 5 },
+        { k: "凝縮", h: "ぎょうしゅく", r: "gyōshuku", m: "응축", cat: "화학", lvl: 5 },
+        { k: "触媒", h: "しょくばい", r: "shokubai", m: "촉매", cat: "화학", lvl: 5 },
+        { k: "還元", h: "かんげん", r: "kangen", m: "환원", cat: "화학", lvl: 5 },
+        { k: "酸化", h: "さんか", r: "sanka", m: "산화", cat: "화학", lvl: 5 },
+        { k: "分解", h: "ぶんかい", r: "bunkai", m: "분해", cat: "화학", lvl: 5 },
+        { k: "平衡", h: "へいこう", r: "heikō", m: "평형", cat: "화학", lvl: 5 },
+        { k: "有機化合物", h: "ゆうきかごうぶつ", r: "yūki kagōbutsu", m: "유기화합물", cat: "화학", lvl: 5 },
+        { k: "無機化合物", h: "むきかごうぶつ", r: "muki kagōbutsu", m: "무기화합물", cat: "화학", lvl: 5 },
+        { k: "化学式", h: "かがくしき", r: "kagakushiki", m: "화학식", cat: "화학", lvl: 5 },
+        { k: "モル", h: "もる", r: "moru", m: "몰", cat: "화학", lvl: 5 },
+        { k: "密度", h: "みつど", r: "mitsudo", m: "밀도", cat: "화학", lvl: 5 },
+        { k: "酸素", h: "さんそ", r: "sanso", m: "산소", cat: "화학", lvl: 5 },
+        { k: "炭素", h: "たんそ", r: "tanso", m: "탄소", cat: "화학", lvl: 5 },
+        { k: "水素", h: "すいそ", r: "suiso", m: "수소", cat: "화학", lvl: 5 },
+        { k: "窒素", h: "ちっそ", r: "chisso", m: "질소", cat: "화학", lvl: 5 },
+        { k: "イオン", h: "いおん", r: "ion", m: "이온", cat: "화학", lvl: 5 },
+        { k: "電解質", h: "でんかいしつ", r: "denkaishitsu", m: "전해질", cat: "화학", lvl: 5 },
+
+        { k: "気体", h: "きたい", r: "kitai", m: "기체", cat: "기화학", lvl: 5 },
+        { k: "圧力", h: "あつりょく", r: "atsuryoku", m: "압력", cat: "기화학", lvl: 5 },
+        { k: "体積", h: "たいせき", r: "taiseki", m: "부피", cat: "기화학", lvl: 5 },
+        { k: "温度", h: "おんど", r: "ondo", m: "온도", cat: "기화학", lvl: 5 },
+        { k: "拡散", h: "かくさん", r: "kakusan", m: "확산", cat: "기화학", lvl: 5 },
+        { k: "分圧", h: "ぶんあつ", r: "bun'atsu", m: "분압", cat: "기화학", lvl: 5 },
+        { k: "熱膨張", h: "ねつぼうちょう", r: "netsu bōchō", m: "열 팽창", cat: "기화학", lvl: 5 },
+        { k: "密度", h: "みつど", r: "mitsudo", m: "밀도", cat: "기화학", lvl: 5 },
+        { k: "気圧", h: "きあつ", r: "kiatsu", m: "기압", cat: "기화학", lvl: 5 },
+        { k: "液化", h: "えきか", r: "ekika", m: "액화", cat: "기화학", lvl: 5 },
+        { k: "蒸発", h: "じょうはつ", r: "jōhatsu", m: "증발", cat: "기화학", lvl: 5 },
+        { k: "凝縮", h: "ぎょうしゅく", r: "gyōshuku", m: "응축", cat: "기화학", lvl: 5 },
+        { k: "気化熱", h: "きかねつ", r: "kikanetsu", m: "기화열", cat: "기화학", lvl: 5 },
+        { k: "臨界点", h: "りんかいてん", r: "rinkaiken", m: "임계점", cat: "기화학", lvl: 5 },
+        { k: "圧力計", h: "あつりょくけい", r: "atsuryokukei", m: "압력계", cat: "기화학", lvl: 5 },
+        { k: "反応速度", h: "はんのう そくど", r: "hannō sokudo", m: "반응 속도", cat: "기화학", lvl: 5 },
+        { k: "表面張力", h: "ひょうめんちょうりょく", r: "hyōmen chōryoku", m: "표면 장력", cat: "기화학", lvl: 5 },
+
+        { k: "力学", h: "りきがく", r: "rikigaku", m: "역학", cat: "물리학", lvl: 4 },
+        { k: "熱力学", h: "ねつりきがく", r: "netsurikigaku", m: "열역학", cat: "물리학", lvl: 4 },
+        { k: "光学", h: "こうがく", r: "kōgaku", m: "광학", cat: "물리학", lvl: 4 },
+        { k: "電磁気学", h: "でんじきがく", r: "denjikigaku", m: "전기자기학", cat: "물리학", lvl: 4 },
+        { k: "量子力学", h: "りょうしりきがく", r: "ryōshi rikigaku", m: "양자역학", cat: "물리학", lvl: 4 },
+        { k: "波動", h: "はどう", r: "hadō", m: "파동", cat: "물리학", lvl: 4 },
+        { k: "運動", h: "うんどう", r: "undō", m: "운동", cat: "물리학", lvl: 4 },
+        { k: "速度", h: "そくど", r: "sokudo", m: "속도", cat: "물리학", lvl: 4 },
+        { k: "加速度", h: "かそくど", r: "kasokudo", m: "가속도", cat: "물리학", lvl: 4 },
+        { k: "力", h: "ちから", r: "chikara", m: "힘", cat: "물리학", lvl: 4 },
+        { k: "運動量", h: "うんどうりょう", r: "undōryō", m: "운동량", cat: "물리학", lvl: 4 },
+        { k: "エネルギー", h: "えねるぎー", r: "enerugī", m: "에너지", cat: "물리학", lvl: 4 },
+        { k: "運動エネルギー", h: "うんどうえねるぎー", r: "undō enerugī", m: "운동에너지", cat: "물리학", lvl: 4 },
+        { k: "位置エネルギー", h: "いちえねるぎー", r: "ichi enerugī", m: "위치에너지", cat: "물리학", lvl: 4 },
+        { k: "仕事", h: "しごと", r: "shigoto", m: "일", cat: "물리학", lvl: 4 },
+        { k: "熱", h: "ねつ", r: "netsu", m: "열", cat: "물리학", lvl: 4 },
+        { k: "温度", h: "おんど", r: "ondo", m: "온도", cat: "물리학", lvl: 4 },
+        { k: "圧力", h: "あつりょく", r: "atsuryoku", m: "압력", cat: "물리학", lvl: 4 },
+        { k: "電気", h: "でんき", r: "denki", m: "전기", cat: "물리학", lvl: 4 },
+        { k: "磁気", h: "じき", r: "jiki", m: "자기", cat: "물리학", lvl: 4 },
+
+        { k: "喜び", h: "よろこび", r: "yorokobi", m: "기쁨", cat: "감정", lvl: 5 },
+        { k: "悲しみ", h: "かなしみ", r: "kanashimi", m: "슬픔", cat: "감정", lvl: 5 },
+        { k: "怒り", h: "いかり", r: "ikari", m: "분노", cat: "감정", lvl: 5 },
+        { k: "恐れ", h: "おそれ", r: "osore", m: "두려움", cat: "감정", lvl: 5 },
+        { k: "驚き", h: "おどろき", r: "odoroki", m: "놀람", cat: "감정", lvl: 5 },
+        { k: "嫌悪", h: "けんお", r: "ken'o", m: "혐오", cat: "감정", lvl: 5 },
+        { k: "安心", h: "あんしん", r: "anshin", m: "안심", cat: "감정", lvl: 5 },
+        { k: "愛情", h: "あいじょう", r: "aijō", m: "애정", cat: "감정", lvl: 5 },
+        { k: "憎しみ", h: "にくしみ", r: "nikushimi", m: "증오", cat: "감정", lvl: 5 },
+        { k: "悔しさ", h: "くやしさ", r: "kuyashisa", m: "후회", cat: "감정", lvl: 5 },
+        { k: "恥ずかしさ", h: "はずかしさ", r: "hazukashisa", m: "부끄러움", cat: "감정", lvl: 5 },
+        { k: "希望", h: "きぼう", r: "kibō", m: "희망", cat: "감정", lvl: 5 },
+        { k: "嫉妬", h: "しっと", r: "shitto", m: "질투", cat: "감정", lvl: 5 },
+        { k: "感謝", h: "かんしゃ", r: "kansha", m: "감사", cat: "감정", lvl: 5 },
+        { k: "孤独", h: "こどく", r: "kodoku", m: "고독", cat: "감정", lvl: 5 },
+        { k: "安堵", h: "あんど", r: "ando", m: "안도", cat: "감정", lvl: 5 },
+        { k: "興奮", h: "こうふん", r: "kōfun", m: "흥분", cat: "감정", lvl: 5 },
+        { k: "疲労", h: "ひろう", r: "hirō", m: "피로", cat: "감정", lvl: 5 },
+        { k: "後悔", h: "こうかい", r: "kōkai", m: "후회", cat: "감정", lvl: 5 },
+        { k: "憂鬱", h: "ゆううつ", r: "yūutsu", m: "우울", cat: "감정", lvl: 5 },
+        { k: "満足", h: "まんぞく", r: "manzoku", m: "만족", cat: "감정", lvl: 5 },
+        { k: "怒鳴り", h: "どなり", r: "donari", m: "고함", cat: "감정", lvl: 5 },
+        { k: "誇り", h: "ほこり", r: "hokori", m: "자부심", cat: "감정", lvl: 5 },
+        { k: "悲嘆", h: "ひたん", r: "hitan", m: "비탄", cat: "감정", lvl: 5 },
+        { k: "安心感", h: "あんしんかん", r: "anshinkan", m: "안전함", cat: "감정", lvl: 5 },
+        { k: "嫉妬心", h: "しっとしん", r: "shittoshin", m: "질투심", cat: "감정", lvl: 5 },
+        { k: "好奇心", h: "こうきしん", r: "kōkishin", m: "호기심", cat: "감정", lvl: 5 },
+        { k: "焦燥", h: "しょうそう", r: "shōsō", m: "초조", cat: "감정", lvl: 5 },
+        { k: "落胆", h: "らくたん", r: "rakutan", m: "낙담", cat: "감정", lvl: 5 },
+        { k: "慈悲", h: "じひ", r: "jihi", m: "자비", cat: "감정", lvl: 5 },
+        { k: "忠誠", h: "ちゅうせい", r: "chūsei", m: "충성", cat: "감정", lvl: 5 },
+
+        { k: "生物学", h: "せいぶつがく", r: "seibutsugaku", m: "생물학", cat: "생물학", lvl: 5 },
+        { k: "細胞", h: "さいぼう", r: "saibō", m: "세포", cat: "생물학", lvl: 5 },
+        { k: "組織", h: "そしき", r: "soshiki", m: "조직", cat: "생물학", lvl: 5 },
+        { k: "器官", h: "きかん", r: "kikan", m: "기관", cat: "생물학", lvl: 5 },
+        { k: "個体", h: "こたい", r: "kotai", m: "개체", cat: "생물학", lvl: 5 },
+        { k: "遺伝子", h: "いでんし", r: "idenshi", m: "유전자", cat: "생물학", lvl: 5 },
+        { k: "進化", h: "しんか", r: "shinka", m: "진화", cat: "생물학", lvl: 5 },
+        { k: "生態系", h: "せいたいけい", r: "seitaikei", m: "생태계", cat: "생물학", lvl: 5 },
+        { k: "動物", h: "どうぶつ", r: "dōbutsu", m: "동물", cat: "생물학", lvl: 5 },
+        { k: "植物", h: "しょくぶつ", r: "shokubutsu", m: "식물", cat: "생물학", lvl: 5 },
+        { k: "微生物", h: "びせいぶつ", r: "biseibutsu", m: "미생물", cat: "생물학", lvl: 5 },
+        { k: "細菌", h: "さいきん", r: "saikin", m: "세균", cat: "생물학", lvl: 5 },
+        { k: "ウイルス", h: "ういるす", r: "uirusu", m: "바이러스", cat: "생물학", lvl: 5 },
+        { k: "DNA", h: "でぃーえぬえー", r: "dī enu ē", m: "DNA", cat: "생물학", lvl: 5 },
+        { k: "RNA", h: "あーるえぬえー", r: "āruenē", m: "RNA", cat: "생물학", lvl: 5 },
+        { k: "代謝", h: "たいしゃ", r: "taisha", m: "대사", cat: "생물학", lvl: 5 },
+        { k: "生殖", h: "せいしょく", r: "seishoku", m: "생식", cat: "생물학", lvl: 5 },
+        { k: "遺伝", h: "いでん", r: "iden", m: "유전", cat: "생물학", lvl: 5 },
+        { k: "細胞分裂", h: "さいぼうぶんれつ", r: "saibō bunretsu", m: "세포 분열", cat: "생물학", lvl: 5 },
+        { k: "バイオーム", h: "ばいおーむ", r: "baiōmu", m: "생물 군계", cat: "생물학", lvl: 5 },
+
+        { k: "ピサの斜塔", h: "ぴさのしゃとう", r: "Pisa no Shatō", m: "피사의 사탑", cat: "건축물", lvl: 5 },
+        { k: "エッフェル塔", h: "えっふぇるとう", r: "Efferu Tō", m: "에펠탑", cat: "건축물", lvl: 5 },
+        { k: "自由の女神", h: "じゆうのめがみ", r: "Jiyū no Megami", m: "자유의 여신상", cat: "건축물", lvl: 5 },
+        { k: "コロッセオ", h: "ころっせお", r: "Korosseo", m: "콜로세움", cat: "건축물", lvl: 5 },
+        { k: "万里の長城", h: "ばんりのちょうじょう", r: "Banri no Chōjō", m: "만리장성", cat: "건축물", lvl: 5 },
+        { k: "タージ・マハル", h: "たーじ・まはる", r: "Tāji Mahar", m: "타지마할", cat: "건축물", lvl: 5 },
+        { k: "サグラダ・ファミリア", h: "さぐらだ・ふぁみりあ", r: "Sagrada Familia", m: "사그라다 파밀리아", cat: "건축물", lvl: 5 },
+        { k: "ノートルダム大聖堂", h: "のーとるだむだいせいどう", r: "Nōtorudamu Daiseidō", m: "노트르담 대성당", cat: "건축물", lvl: 5 },
+        { k: "ピラミッド", h: "ぴらみっど", r: "Piramiddo", m: "피라미드", cat: "건축물", lvl: 5 },
+        { k: "アンコール・ワット", h: "あんこーる・わっと", r: "Ankōru Watto", m: "앙코르 와트", cat: "건축물", lvl: 5 },
+        { k: "シドニーオペラハウス", h: "しどにーおぺらはうす", r: "Shidonī Opera Hausu", m: "시드니 오페라 하우스", cat: "건축물", lvl: 5 },
+        { k: "ルーブル美術館", h: "るーぶるびじゅつかん", r: "Rūburu Bijutsukan", m: "루브르 박물관", cat: "건축물", lvl: 5 },
+        { k: "サンピエトロ大聖堂", h: "さんぴえとろだいせいどう", r: "San Pietro Daiseidō", m: "성 베드로 대성당", cat: "건축물", lvl: 5 },
+        { k: "ブランデンブルク門", h: "ぶらんでんぶるくもん", r: "Burandenburuku Mon", m: "브란덴부르크 문", cat: "건축물", lvl: 5 },
+        { k: "アクロポリス", h: "あくろぽりす", r: "Akuroporisu", m: "아크로폴리스", cat: "건축물", lvl: 5 },
+        { k: "ミラノ大聖堂", h: "みらのだいせいどう", r: "Mirano Daiseidō", m: "밀라노 대성당", cat: "건축물", lvl: 5 },
+        { k: "ニューデリー国회의사당", h: "にゅーでりーこくぎいんじどう", r: "Nyū Derī Kokugiinjidō", m: "뉴델리 국회의사당", cat: "건축물", lvl: 5 },
+        { k: "プラハ城", h: "ぷらはじょう", r: "Puraha Jō", m: "프라하 성", cat: "건축물", lvl: 5 },
+        { k: "バッキンガム宮殿", h: "ばっきんがむきゅうでん", r: "Bakkhingamu Kyūden", m: "버킹엄 궁전", cat: "건축물", lvl: 5 },
+        { k: "ノイシュヴァンシュタイン城", h: "のいしゅヴぁんしゅたいんじょう", r: "Noishuvanshutain Jō", m: "노이슈반슈타인 성", cat: "건축물", lvl: 5 },
+        { k: "自由塔", h: "じゆうとう", r: "Jiyūtō", m: "자유의 탑", cat: "건축물", lvl: 5 },
+        { k: "セントポール大聖堂", h: "せんとぽーるだいせいどう", r: "Sento Pōru Daiseidō", m: "세인트 폴 대성당", cat: "건축물", lvl: 5 },
+        { k: "ワット・ポー", h: "わっと・ぽー", r: "Watto Pō", m: "왓 포 사원", cat: "건축물", lvl: 5 },
+        { k: "サン・マルコ寺院", h: "さん・まるこじいん", r: "San Maruko Ji'in", m: "산 마르코 성당", cat: "건축물", lvl: 5 },
+        { k: "キャッスル・ロック", h: "きゃっする・ろっく", r: "Kyassuru Rokku", m: "캐슬 록 성", cat: "건축물", lvl: 5 },
+        { k: "カザン大聖堂", h: "かざんだいせいどう", r: "Kazan Daiseidō", m: "카잔 대성당", cat: "건축물", lvl: 5 },
+        { k: "エルサレム神殿", h: "えるされむしんでん", r: "Erusaremu Shinden", m: "예루살렘 성전", cat: "건축물", lvl: 5 },
+        { k: "カルカッタ大聖堂", h: "かるかっただいせいどう", r: "Karukatta Daiseidō", m: "콜카타 대성당", cat: "건축물", lvl: 5 },
+        { k: "シーザーズ・팰리스", h: "しーざーず・ぱれす", r: "Shīzāzu Paresu", m: "시저스 팰리스", cat: "건축물", lvl: 5 },
+        { k: "エル・カスティーリョ", h: "える・かすてぃーりょ", r: "Eru Kasutīryo", m: "엘 카스티요", cat: "건축물", lvl: 5 },
+
+        { k: "会社", h: "かいしゃ", r: "kaisha", m: "회사", cat: "회사", lvl: 5 },
+        { k: "社員", h: "しゃいん", r: "shain", m: "직원", cat: "회사", lvl: 5 },
+        { k: "上司", h: "じょうし", r: "jōshi", m: "상사", cat: "회사", lvl: 5 },
+        { k: "部長", h: "ぶちょう", r: "buchō", m: "부장", cat: "회사", lvl: 5 },
+        { k: "課長", h: "かちょう", r: "kachō", m: "과장", cat: "회사", lvl: 5 },
+        { k: "営業", h: "えいぎょう", r: "eigyō", m: "영업", cat: "회사", lvl: 5 },
+        { k: "会議", h: "かいぎ", r: "kaigi", m: "회의", cat: "회사", lvl: 5 },
+        { k: "資料", h: "しりょう", r: "shiryou", m: "자료", cat: "회사", lvl: 5 },
+        { k: "企画", h: "きかく", r: "kikaku", m: "기획", cat: "회사", lvl: 5 },
+        { k: "報告", h: "ほうこく", r: "hōkoku", m: "보고", cat: "회사", lvl: 5 },
+        { k: "連絡", h: "れんらく", r: "renraku", m: "연락", cat: "회사", lvl: 5 },
+        { k: "残業", h: "ざんぎょう", r: "zangyō", m: "잔업", cat: "회사", lvl: 5 },
+        { k: "休暇", h: "きゅうか", r: "kyūka", m: "휴가", cat: "회사", lvl: 5 },
+        { k: "契約", h: "けいやく", r: "keiyaku", m: "계약", cat: "회사", lvl: 5 },
+        { k: "給与", h: "きゅうよ", r: "kyūyo", m: "급여", cat: "회사", lvl: 5 },
+        { k: "出張", h: "しゅっちょう", r: "shucchō", m: "출장", cat: "회사", lvl: 5 },
+        { k: "面接", h: "めんせつ", r: "mensetsu", m: "면접", cat: "회사", lvl: 5 },
+        { k: "採用", h: "さいよう", r: "saiyō", m: "채용", cat: "회사", lvl: 5 },
+        { k: "退社", h: "たいしゃ", r: "taisha", m: "퇴사", cat: "회사", lvl: 5 },
+        { k: "勤務", h: "きんむ", r: "kinmu", m: "근무", cat: "회사", lvl: 5 },
+
+        { k: "社会構造", h: "しゃかいこうぞう", r: "shakai kōzō", m: "사회 구조", cat: "사회적 단어", lvl: 5 },
+        { k: "階級制度", h: "かいきゅうせいど", r: "kaikyū seido", m: "계급 제도", cat: "사회적 단어", lvl: 5 },
+        { k: "身分制度", h: "みぶんせいど", r: "mibun seido", m: "신분 제도", cat: "사회적 단어", lvl: 5 },
+        { k: "権力闘争", h: "けんりょくとうそう", r: "kenryoku tōsō", m: "권력 투쟁", cat: "사회적 단어", lvl: 5 },
+        { k: "社会的排除", h: "しゃかいてきはいじょ", r: "shakaiteki haijo", m: "사회적 배제", cat: "사회적 단어", lvl: 5 },
+        { k: "差別意識", h: "さべついしき", r: "sabetsu ishiki", m: "차별 의식", cat: "사회적 단어", lvl: 5 },
+        { k: "権利擁護", h: "けんりようご", r: "kenri yōgo", m: "권리 옹호", cat: "사회적 단어", lvl: 5 },
+        { k: "社会運動", h: "しゃかいうんどう", r: "shakai undō", m: "사회 운동", cat: "사회적 단어", lvl: 5 },
+        { k: "市民参加", h: "しみんさんか", r: "shimin sanka", m: "시민 참여", cat: "사회적 단어", lvl: 5 },
+        { k: "集団行動", h: "しゅうだんこうどう", r: "shūdan kōdō", m: "집단 행동", cat: "사회적 단어", lvl: 5 },
+        { k: "社会的責任", h: "しゃかいてきせきにん", r: "shakaiteki sekinin", m: "사회적 책임", cat: "사회적 단어", lvl: 5 },
+        { k: "政府機構", h: "せいふきこう", r: "seifu kikō", m: "정부 기구", cat: "사회적 단어", lvl: 5 },
+        { k: "社会福祉", h: "しゃかいふくし", r: "shakai fukushi", m: "사회 복지", cat: "사회적 단어", lvl: 5 },
+        { k: "経済格差", h: "けいざいかくさ", r: "keizai kakusa", m: "경제 격차", cat: "사회적 단어", lvl: 5 },
+        { k: "労働運動", h: "ろうどううんどう", r: "rōdō undō", m: "노동 운동", cat: "사회적 단어", lvl: 5 },
+        { k: "社会変革", h: "しゃかいへんかく", r: "shakai henkaku", m: "사회 변혁", cat: "사회적 단어", lvl: 5 },
+        { k: "文化多様性", h: "ぶんかたようせい", r: "bunka tayōsei", m: "문화 다양성", cat: "사회적 단어", lvl: 5 },
+        { k: "社会的連帯", h: "しゃかいてきれんたい", r: "shakaiteki rentai", m: "사회적 연대", cat: "사회적 단어", lvl: 5 },
+        { k: "公共政策", h: "こうきょうせいさく", r: "kōkyō seisaku", m: "공공 정책", cat: "사회적 단어", lvl: 5 },
+        { k: "権力集中", h: "けんりょくしゅうちゅう", r: "kenryoku shūchū", m: "권력 집중", cat: "사회적 단어", lvl: 5 },
+        { k: "情報統制", h: "じょうほうとうせい", r: "jōhō tōsei", m: "정보 통제", cat: "사회적 단어", lvl: 5 },
+        { k: "社会的流動性", h: "しゃかいてきりゅうどうせい", r: "shakaiteki ryūdōsei", m: "사회적 유동성", cat: "사회적 단어", lvl: 5 },
+        { k: "政治腐敗", h: "せいじふはい", r: "seiji fuhai", m: "정치 부패", cat: "사회적 단어", lvl: 5 },
+        { k: "民主主義", h: "みんしゅしゅぎ", r: "minshu shugi", m: "민주주의", cat: "사회적 단어", lvl: 5 },
+        { k: "社会契約", h: "しゃかいけいやく", r: "shakai keiyaku", m: "사회 계약", cat: "사회적 단어", lvl: 5 },
+        { k: "法の支配", h: "ほうのしはい", r: "hō no shihai", m: "법의 지배", cat: "사회적 단어", lvl: 5 },
+        { k: "権力分立", h: "けんりょくぶんりつ", r: "kenryoku bunritsu", m: "권력 분립", cat: "사회적 단어", lvl: 5 },
+        { k: "社会的公正", h: "しゃかいてきこうせい", r: "shakaiteki kōsei", m: "사회적 공정", cat: "사회적 단어", lvl: 5 },
+        { k: "社会格差", h: "しゃかいかくさ", r: "shakai kakusa", m: "사회 격차", cat: "사회적 단어", lvl: 5 },
+        { k: "ジェンダー平等", h: "じぇんだーびょうどう", r: "jendā byōdō", m: "젠더 평등", cat: "사회적 단어", lvl: 5 },
+        
+        { k: "慎重", h: "しんちょう", r: "shinchō", m: "신중함", cat: "성격", lvl: 5 },
+        { k: "勇敢", h: "ゆうかん", r: "yūkan", m: "용감함", cat: "성격", lvl: 5 },
+        { k: "内向的", h: "ないこうてき", r: "naikōteki", m: "내향적임", cat: "성격", lvl: 5 },
+        { k: "外向的", h: "がいこうてき", r: "gaikōteki", m: "외향적임", cat: "성격", lvl: 5 },
+        { k: "傲慢", h: "ごうまん", r: "gōman", m: "거만함", cat: "성격", lvl: 5 },
+        { k: "寛容", h: "かんよう", r: "kanyō", m: "관용적임", cat: "성격", lvl: 5 },
+        { k: "冷静", h: "れいせい", r: "reisei", m: "침착함", cat: "성격", lvl: 5 },
+        { k: "短気", h: "たんき", r: "tanki", m: "성급함", cat: "성격", lvl: 5 },
+        { k: "社交的", h: "しゃこうてき", r: "shakōteki", m: "사교적임", cat: "성격", lvl: 5 },
+        { k: "慈悲深い", h: "じひぶかい", r: "jihibukai", m: "자비심이 깊음", cat: "성격", lvl: 5 },
+        { k: "誠実", h: "せいじつ", r: "seijitsu", m: "성실함", cat: "성격", lvl: 5 },
+        { k: "寡黙", h: "かもく", r: "kamoku", m: "과묵함", cat: "성격", lvl: 5 },
+        { k: "楽天的", h: "らくてんてき", r: "rakutenteki", m: "낙천적임", cat: "성격", lvl: 5 },
+        { k: "神経質", h: "しんけいしつ", r: "shinkeishitsu", m: "신경질적임", cat: "성격", lvl: 5 },
+        { k: "独立心が強い", h: "どくりつしんがつよい", r: "dokuritsu shin ga tsuyoi", m: "독립심이 강함", cat: "성격", lvl: 5 },
+
+        { k: "茶道", h: "さどう", r: "sadō", m: "다도", cat: "일본문화", lvl: 5 },
+        { k: "華道", h: "かどう", r: "kadō", m: "꽃꽂이", cat: "일본문화", lvl: 5 },
+        { k: "能楽", h: "のうがく", r: "nōgaku", m: "노가쿠(전통극)", cat: "일본문화", lvl: 5 },
+        { k: "歌舞伎", h: "かぶき", r: "kabuki", m: "가부키(전통 연극)", cat: "일본문화", lvl: 5 },
+        { k: "狂言", h: "きょうげん", r: "kyōgen", m: "쿄겐(풍자극)", cat: "일본문화", lvl: 5 },
+        { k: "和服", h: "わふく", r: "wafuku", m: "일본 전통의상", cat: "일본문화", lvl: 5 },
+        { k: "神道", h: "しんとう", r: "shintō", m: "신도(일본 고유 종교)", cat: "일본문화", lvl: 5 },
+        { k: "仏教", h: "ぶっきょう", r: "bukkyō", m: "불교", cat: "일본문화", lvl: 5 },
+        { k: "祭り", h: "まつり", r: "matsuri", m: "축제, 제례", cat: "일본문화", lvl: 5 },
+        { k: "浮世絵", h: "うきよえ", r: "ukiyoe", m: "우키요에(전통 목판화)", cat: "일본문화", lvl: 5 },
+        { k: "刀剣", h: "とうけん", r: "tōken", m: "일본도", cat: "일본문화", lvl: 5 },
+        { k: "能面", h: "のうめん", r: "nōmen", m: "노가쿠 가면", cat: "일본문화", lvl: 5 },
+        { k: "茶器", h: "ちゃき", r: "chaki", m: "다도 기구", cat: "일본문화", lvl: 5 },
+        { k: "庭園", h: "ていえん", r: "teien", m: "일본식 정원", cat: "일본문화", lvl: 5 },
+        { k: "和楽器", h: "わがっき", r: "wagakki", m: "일본 전통 악기", cat: "일본문화", lvl: 5 },
+        { k: "盆栽", h: "ぼんさい", r: "bonsai", m: "분재", cat: "일본문화", lvl: 5 },
+        { k: "抹茶", h: "まっちゃ", r: "matcha", m: "말차(가루 녹차)", cat: "일본문화", lvl: 5 },
+        { k: "陶芸", h: "とうげい", r: "tōgei", m: "도예", cat: "일본문화", lvl: 5 },
+        { k: "書道", h: "しょどう", r: "shodō", m: "서도(일본 서예)", cat: "일본문화", lvl: 5 },
+        { k: "茶室", h: "ちゃしつ", r: "chashitsu", m: "다실", cat: "일본문화", lvl: 5 },
+
+        { k: "ざあざあ", h: "ざあざあ", r: "zaazaa", m: "억수같이 세차게 내리는 소리(폭우)", cat: "의성어", lvl: 5 },
+        { k: "がらがら", h: "がらがら", r: "garagara", m: "텅 빈 소리, 삐걱대는 소리", cat: "의성어", lvl: 5 },
+        { k: "しくしく", h: "しくしく", r: "shikushiku", m: "조용히 흐느끼는 소리", cat: "의성어", lvl: 5 },
+        { k: "がんがん", h: "がんがん", r: "gangan", m: "심하게 머리가 아픈 소리, 크게 울리는 소리", cat: "의성어", lvl: 5 },
+        { k: "ぴんぴん", h: "ぴんぴん", r: "pinpin", m: "활기차고 건강한 상태", cat: "의성어", lvl: 5 },
+        { k: "ずきずき", h: "ずきずき", r: "zukizuki", m: "심하게 욱신욱신 아픈 상태", cat: "의성어", lvl: 5 },
+        { k: "どんより", h: "どんより", r: "donjiyori", m: "무거운 기운이나 흐린 날씨 등의 상태", cat: "의성어", lvl: 5 },
+        { k: "わいわい", h: "わいわい", r: "waiwai", m: "시끌벅적 떠드는 소리", cat: "의성어", lvl: 5 },
+        { k: "ひそひそ", h: "ひそひそ", r: "hisohiso", m: "작고 조용한 속삭임", cat: "의성어", lvl: 5 },
+        { k: "すやすや", h: "すやすや", r: "suyasuya", m: "편안히 곤히 자는 모양", cat: "의성어", lvl: 5 },
+        { k: "ぱちぱち", h: "ぱちぱち", r: "pachipachi", m: "불꽃이나 손뼉 치는 소리", cat: "의성어", lvl: 5 },
+        { k: "さらさら", h: "さらさら", r: "sarasara", m: "부드럽고 매끄러운 움직임이나 소리", cat: "의성어", lvl: 5 },
+        { k: "どきどき", h: "どきどき", r: "dokidoki", m: "심장이 두근두근 뛰는 소리", cat: "의성어", lvl: 5 },
+        { k: "ぐずぐず", h: "ぐずぐず", r: "guzuguzu", m: "늦장부리는 소리나 상태", cat: "의성어", lvl: 5 },
+        { k: "ばたばた", h: "ばたばた", r: "batabata", m: "바쁘게 움직이는 소리", cat: "의성어", lvl: 5 },
+
+        { k: "もじもじ", h: "もじもじ", r: "mojimoji", m: "부끄럽거나 망설이며 머뭇거리는 모습", cat: "의태어", lvl: 5 },
+        { k: "ぐずぐず", h: "ぐずぐず", r: "guzuguzu", m: "미적거리며 결정을 못 하는 상태", cat: "의태어", lvl: 5 },
+        { k: "ぺこぺこ", h: "ぺこぺこ", r: "pekopeko", m: "매우 배고픈 상태", cat: "의태어", lvl: 5 },
+        { k: "ちくちく", h: "ちくちく", r: "chikuchiku", m: "간지럽거나 쏘는 듯한 기분", cat: "의태어", lvl: 5 },
+        { k: "ぞろぞろ", h: "ぞろぞろ", r: "zoro zoro", m: "사람들이 계속해서 줄지어 움직이는 모습", cat: "의태어", lvl: 5 },
+        { k: "ぼろぼろ", h: "ぼろぼろ", r: "boroboro", m: "모서리나 상태가 낡고 흐트러진 모습", cat: "의태어", lvl: 5 },
+        { k: "がんがん", h: "がんがん", r: "gangan", m: "머리가 심하게 아픈 상태나 큰 소리", cat: "의태어", lvl: 5 },
+        { k: "ひそひそ", h: "ひそひそ", r: "hisohiso", m: "작고 은밀하게 속삭이는 소리", cat: "의태어", lvl: 5 },
+        { k: "がたがた", h: "がたがた", r: "gatagata", m: "떨리거나 덜컹거리는 소리", cat: "의태어", lvl: 5 },
+        { k: "ちかちか", h: "ちかちか", r: "chikachika", m: "빛이 깜빡거리거나 눈부신 상태", cat: "의태어", lvl: 5 },
+        { k: "ぴかぴか", h: "ぴかぴか", r: "pikapika", m: "빛나거나 반짝이는 상태", cat: "의태어", lvl: 5 },
+        { k: "ぺちゃくちゃ", h: "ぺちゃくちゃ", r: "pechakucha", m: "끊임없이 수다 떠는 소리", cat: "의태어", lvl: 5 },
+        { k: "ぐらぐら", h: "ぐらぐら", r: "guragura", m: "흔들리거나 불안정한 상태", cat: "의태어", lvl: 5 },
+        { k: "ふらふら", h: "ふらふら", r: "furafura", m: "어지럽거나 비틀거리는 모습", cat: "의태어", lvl: 5 },
+        { k: "ぴょんぴょん", h: "ぴょんぴょん", r: "pyonpyon", m: "깡충깡충 뛰는 모습", cat: "의태어", lvl: 5 },
+
+    ];
+// 🎯 [END] VOCAB_DB 끝나는 부분
+
+
+
+let nick = "";
+userData = {
+    score: 0,
+    highScore: 0,
+    energy: 100,
+    stage: 1,
+    gold: 0,
+    inventory: { hint: 0, skip: 0 },
+    char: 'default',
+    ownedChars: ['default']
+};
+let selectedCard = null;
+let currentCombo = 0;
+let sessionWrongLog = {};
+let currentStageTotals = {};
+let currentStageCount = {};
+let isProcessingMove = false; 
+let currentStageWrongWordsList = []; 
+
+const CHARACTER_DB = {
+    'default': { name: '기본 학생', emoji: '😉', price: 0 },
+    'cat': { name: '고양이', emoji: '🐱', price: 1000 },
+    'dog': { name: '강아지', emoji: '🐶', price: 1000 },
+    'cow': { name: '소', emoji: '🐮', price: 1000 },
+    'hamster': { name: '햄스터', emoji: '🐹', price: 1000 },
+    'mouse': { name: '쥐', emoji: '🐭', price: 1000 },
+    'rabbit': { name: '토끼', emoji: '🐰', price: 1000 },
+    'raccoon': { name: '라쿤', emoji: '🦝', price: 1000 },
+    'bear': { name: '곰', emoji: '🐻', price: 1000 },
+    'panda': { name: '판다', emoji: '🐼', price: 1000 },
+    'frog': { name: '개구리', emoji: '🐸', price: 1000 },
+    'poop': { name: '응가', emoji: '💩', price: 1000 },
+    'alien': { name: '외계인', emoji: '👽', price: 1000 },
+    'devil': { name: '악마', emoji: '😈', price: 1000 },
+    'pierrot': { name: '삐에로', emoji: '🤡', price: 1000 },
+};
+
+const SKIN_DB = {
+        'default': { name: '기본', bg: '#89d358', card: '#ffffff', price: 0 },
+        'spring': { name: '봄 🌸', bg: '#FFC0CB', card: '#98FB98', price: 10000 },
+        'summer': { name: '여름 🌊', bg: '#87CEEB', card: '#FF4500', price: 10000 },
+        'autumn': { name: '가을 🍂', bg: '#e67e22', card: '#fff3e0', price: 10000 },
+        'winter': { name: '겨울 ❄️', bg: '#003366', card: '#F5F5DC', price: 10000 },
+        'night': { name: '밤 🌙', bg: '#0B1D51', card: '#C0C0C0', price: 10000 }
+};
+
+
+// 밝기 계산 함수 (RGB 값을 밝기로 변환)
+function getContrastYIQ(hexcolor) {
+    hexcolor = hexcolor.replace("#", "");
+    const r = parseInt(hexcolor.substr(0, 2), 16);
+    const g = parseInt(hexcolor.substr(2, 2), 16);
+    const b = parseInt(hexcolor.substr(4, 2), 16);
+    // YIQ 공식 사용
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? 'black' : 'white';
+}
+
+// 스킨 적용 함수 수정
+function applySkin(skinId) {
+    const skin = SKIN_DB[skinId];
+    if (!skin) return;
+    
+    // 배경색 적용
+    document.body.style.background = skin.bg;
+    
+    // 카드색 적용
+    document.querySelectorAll('.card, .target-slot').forEach(card => {
+        card.style.backgroundColor = skin.card;
+        // 밝기 계산해서 글자색 자동 반전
+        const rgb = parseInt(skin.card.replace('#',''), 16);
+        card.style.color = (rgb > 0x888888) ? '#000' : '#fff';
+    });
+    
+    userData.currentSkin = skinId;
+    saveData();
+    alert(skin.name + " 적용 완료!");
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function loginAndGoToLobby() {
+    const input = document.getElementById('nick').value.trim();
+    if (!input) { alert("닉네임을 입력해 주세요!"); return; }
+    nick = input;
+    
+    const saved = localStorage.getItem('solitaire_' + nick);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            userData = { ...userData, ...parsed };
+            if(!userData.inventory) userData.inventory = { hint: 0, skip: 0 };
+            if(!userData.currentSkin) userData.currentSkin = "default";
+        } catch(e) { console.error(e); }
+    } else {
+        userData.nick = nick;
+        userData.currentSkin = "default"; // 신규 유저는 기본 스킨 설정
+    }
+    
+    // 수정: 저장된 스킨 ID를 가져와서 적용
+    applySkin(userData.currentSkin); 
+    
+    goToLobby();
+}
+
+
+function goToLobby() {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('gameover-overlay').style.display = 'none';
+    document.getElementById('clear-overlay').style.display = 'none';
+    
+    document.getElementById('lobby-overlay').style.display = 'flex';
+    
+    document.getElementById('lobby-nick').innerText = userData.nick;
+    document.getElementById('lobby-gold').innerText = userData.gold;
+    document.getElementById('lobby-highscore').innerText = userData.highScore;
+    document.getElementById('lobby-stage').innerText = userData.stage;
+
+    updateUI(); 
+}
+
+function enterGame() {
+    document.getElementById('lobby-overlay').style.display = 'none';
+    document.getElementById('game-container').style.display = 'flex';
+    
+    if(userData.energy <= 0) {
+        userData.energy = 100;
+        userData.score = 0;
+        userData.stage = 1;
+        currentCombo = 0;
+    }
+    
+    initStage();
+}
+
+// 📌 모달 관리 및 상점 로직 (단어장 카테고리화, 발음 표기 및 펼침/접힘 추가)
+function openModal(id) {
+    document.getElementById(id).style.display = 'flex';
+    
+    // 📖 단어장 모달 처리
+    if (id === 'vocab-modal') {
+        const vl = document.getElementById('full-vocab-list');
+
+        // 1. 검색창과 단어 영역을 담을 HTML 구조 생성
+        vl.innerHTML = `
+            <div style="margin-bottom: 10px; position: sticky; top: 0; z-index: 10; background: white; padding: 5px 0;">
+                <input type="text" id="vocab-search" placeholder="단어, 뜻, 발음으로 검색..." 
+                oninput="filterVocabList(this.value)" 
+                style="width: 100%; padding: 10px; border: 2px solid #3498db; border-radius: 8px; box-sizing: border-box; font-size: 1rem;">
+            </div>
+            <div id="vocab-content-area"></div>
+        `;
+
+        const contentArea = document.getElementById('vocab-content-area');
+        const grouped = {};
+        VOCAB_DB.forEach(w => {
+            if (!grouped[w.cat]) grouped[w.cat] = [];
+            grouped[w.cat].push(w);
+        });
+
+        let combinedHTML = '';
+        for (const category in grouped) {
+            const safeCatId = 'cat-' + category.replace(/\s+/g, '-');
+            
+            const levelMap = { 1: "기초", 2: "초급", 3: "중급", 4: "고급", 5: "심화" };
+            const firstWordLevel = grouped[category][0].lvl || 1;
+            const levelTag = `[${levelMap[firstWordLevel] || "기초"}]`;
+
+            combinedHTML += `
+                <div onpointerdown="toggleVocabCategory('${safeCatId}', this)" style="margin: 15px 0 0 0; padding: 10px 15px; background: #e8f4fd; border-left: 4px solid #3498db; font-weight: bold; color: #2c3e50; border-radius: 6px; text-align: left; font-size: 0.95rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: border-radius 0.2s;">
+                    <span>${levelTag} ${category}</span>
+                    <span class="toggle-icon" style="transition: transform 0.3s ease; font-size: 0.8rem; color: #3498db;">▼</span>
+                </div>
+                <div id="${safeCatId}" style="display: none; padding: 5px; border: 1px solid #e8f4fd; border-top: none; border-radius: 0 0 6px 6px; background: #fafcff;">
+            `;
+            
+            combinedHTML += grouped[category].map(w => {
+                let safeH = w.h.replace("де", "で");
+                let pronunHTML = w.r ? `<span style="color:#e67e22; font-size:0.75rem; margin-left: 4px;">[${w.r}]</span>` : "";
+
+                return `
+                    <div class="vocab-item" onpointerdown="playVocabSpeech('${safeH}')">
+                        <div style="text-align: left;">
+                            <b>${w.k}</b> <span style="color:#2980b9; font-size:0.8rem;">(${w.h})</span> ${pronunHTML}
+                            <div style="color:#666; font-size:0.8rem; margin-top: 2px;">${w.m}</div>
+                        </div>
+                        <span style="font-size: 1.1rem; color: #3498db; padding-right: 4px;">🔊</span>
+                    </div>
+                `;
+            }).join('');
+            
+            combinedHTML += `</div>`;
+        }
+        
+        contentArea.innerHTML = combinedHTML || "<p style='text-align:center; color:#888;'>단어가 없습니다.</p>";
+    }
+
+    // 💡 기타 모달 처리 (이 부분들이 openModal의 끝에 있어야 합니다)
+    if (id === 'note-modal') {
+        renderWrongNote();
+    }
+    // openModal 함수 내 shop-modal 부분
+    if (id === 'shop-modal') {
+        document.getElementById('shop-gold').innerText = userData.gold;
+        renderShop('item'); // 처음엔 아이템 탭 호출
+        document.getElementById(id).style.display = 'flex';
+    }
+}
+
+// 2. 상점 화면 렌더링 (가로 리스트 형태 최적화 및 4열 스킨 격자)
+function renderShop(type = 'char', btnElement = null) {
+    const shopList = document.getElementById('shop-list');
+    if (!shopList) return;
+
+    // 탭 버튼 클릭 시 활성화 상태 변경
+    if (btnElement) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+    }
+
+    let html = '';
+
+    // 🧑‍🎓 캐릭터 탭: 한 눈에 들어오는 깔끔한 가로형 리스트
+    if (type === 'char') {
+        html = '<div style="display:flex; flex-direction:column; gap:8px; width:100%; box-sizing:border-box;">';
+        for (let id in CHARACTER_DB) {
+            let char = CHARACTER_DB[id];
+            let isOwned = userData.ownedChars.includes(id);
+            html += `
+                <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; box-sizing:border-box; height:65px;">
+                    <div style="font-size:2.5rem; width:50px; text-align:center; flex-shrink:0; line-height:1;">${char.emoji}</div>
+                    
+                    <div style="flex-grow:1; text-align:left; padding-left:8px; overflow:hidden;">
+                        <div style="font-weight:bold; font-size:1.1rem; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${char.name}</div>
+                    </div>
+                    
+                    <div style="flex-shrink:0;">
+                        ${isOwned ? 
+                            `<button onclick="equipChar('${id}')" style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; background:${userData.char === id ? '#95a5a6' : 'var(--green)'}; border:none; color:white; cursor:pointer;">${userData.char === id ? '장착중' : '장착'}</button>` : 
+                            `<button onclick="buyChar('${id}')" style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; border:none; cursor:pointer;">${char.price}G</button>`}
+                    </div>
+                </div>`;
+        }
+        html += '</div>';
+    } 
+    // 🎒 아이템 탭: 캐릭터와 완벽히 동일한 가로형 리스트 구조 (구겨 넣지 않음)
+    else if (type === 'item') {
+        html = '<div style="display:flex; flex-direction:column; gap:8px; width:100%; box-sizing:border-box;">';
+        
+        // 힌트 아이템
+        html += `
+            <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; box-sizing:border-box; height:65px;">
+                <div style="font-size:2.3rem; width:50px; text-align:center; flex-shrink:0; line-height:1;">💡</div>
+                <div style="flex-grow:1; text-align:left; padding-left:8px; overflow:hidden;">
+                    <div style="font-weight:bold; font-size:1.1rem; color:#222;">힌트</div>
+                    <div style="font-size:0.75rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">단어의 위치를 알려줍니다</div>
+                </div>
+                <div style="flex-shrink:0;">
+                    <button style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; border:none; cursor:pointer;" onclick="buyItem('hint', 100)">100G</button>
+                </div>
+            </div>`;
+            
+        // 스킵 아이템
+        html += `
+            <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; box-sizing:border-box; height:65px;">
+                <div style="font-size:2.3rem; width:50px; text-align:center; flex-shrink:0; line-height:1;">🎫</div>
+                <div style="flex-grow:1; text-align:left; padding-left:8px; overflow:hidden;">
+                    <div style="font-weight:bold; font-size:1.1rem; color:#222;">스킵</div>
+                    <div style="font-size:0.75rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">스테이지를 즉시 넘깁니다</div>
+                </div>
+                <div style="flex-shrink:0;">
+                    <button style="width:80px; height:40px; border-radius:8px; font-weight:bold; font-size:0.85rem; border:none; cursor:pointer;" onclick="buyItem('skip', 500)">500G</button>
+                </div>
+            </div>`;
+            
+        html += '</div>';
+    } 
+    // 🎨 스킨 탭: 공간을 낭비하지 않는 컴팩트한 한 줄 4개 격자 (Grid)
+    else if (type === 'skin') {
+        html = '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; width:100%; box-sizing:border-box;">';
+        for (let id in SKIN_DB) {
+            let s = SKIN_DB[id];
+            let isEquipped = userData.currentSkin === id;
+            html += `
+                <div class="shop-card" style="background:${s.card}; border:2px solid ${s.bg}; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:8px 4px; border-radius:8px; box-sizing:border-box; min-height:75px; aspect-ratio: 1 / 1.1;">
+                    <div style="font-weight:bold; font-size:0.75rem; margin-bottom:6px; text-align:center; color:${getContrastYIQ(s.card)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${s.name}</div>
+                    
+                    <button onclick="applySkin('${id}')" style="width:85%; padding:4px 0; border-radius:5px; font-size:0.7rem; font-weight:bold; border:none; background:${isEquipped ? '#95a5a6' : 'var(--green)'}; color:white; cursor:pointer;">
+                        ${isEquipped ? 'ON' : '적용'}
+                    </button>
+                </div>`;
+        }
+        html += '</div>';
+    }
+    
+    shopList.innerHTML = html;
+}
+
+
+function buyChar(id) {
+    if (userData.gold >= CHARACTER_DB[id].price) {
+        userData.gold -= CHARACTER_DB[id].price;
+        userData.ownedChars.push(id);
+        saveData();
+        renderShop();
+        updateUI();
+    } else {
+        alert("골드가 부족합니다!");
+    }
+}
+
+// 캐릭터 장착
+function equipChar(id) {
+    userData.char = id;
+    saveData();
+    renderShop('char'); // 캐릭터 탭 유지
+    updateGameCharacter();
+}
+
+// 캐릭터 이모지 업데이트 (로비 및 게임 화면)
+function updateGameCharacter() {
+    const charSpan = document.getElementById('game-char-emoji');
+    if (!charSpan) return;
+    const charData = CHARACTER_DB[userData.char] || CHARACTER_DB['default'];
+    charSpan.innerText = charData.emoji;
+}
+
+// 캐릭터 구매 함수
+function buyChar(id) {
+    const char = CHARACTER_DB[id];
+    if (userData.gold >= char.price) {
+        userData.gold -= char.price;
+        userData.ownedChars.push(id);
+        
+        saveData();    // 1. 데이터를 저장하고
+        updateUI();    // 2. 화면의 골드를 새로고침하고
+        renderShop();  // 3. 상점 화면을 다시 그려서 '구매 완료' 버튼으로 바꿉니다.
+    } else {
+        alert("골드가 부족합니다!");
+    }
+}
+// 캐릭터 장착 함수
+function equipChar(id) {
+    userData.char = id;
+    saveData();
+    renderShop();
+    updateUI();
+    updateGameCharacter();
+}
+
+function updateGameCharacter() {
+    const charSpan = document.getElementById('game-char-emoji');
+    if (!charSpan) return; // 태그가 없으면 멈춤
+
+    const charId = userData.char || 'default';
+    const charData = CHARACTER_DB[charId];
+    
+    if (charData) {
+        charSpan.innerText = charData.emoji;
+    }
+}
+
+// 💡 [신규] 카테고리를 접고 펴는 애니메이션 기능 (openModal 함수 바로 아래에 추가하세요)
+function toggleVocabCategory(catId, headerElement) {
+    const content = document.getElementById(catId);
+    const icon = headerElement.querySelector('.toggle-icon');
+    
+    // 닫혀있으면 열고, 열려있으면 닫기
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)'; // 화살표 뒤집기
+        headerElement.style.borderRadius = "6px 6px 0 0"; // 자연스럽게 이어지도록 밑 테두리 각지게 변경
+    } else {
+        content.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)'; // 화살표 원상복구
+        headerElement.style.borderRadius = "6px"; // 다시 둥글게 변경
+    }
+}
+
+// 🔊 [신규] 단어장 전용 일본어 발음 출력 기능
+function playVocabSpeech(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // 현재 재생 중인 음성 초기화
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'ja-JP'; // 일본어 설정
+        window.speechSynthesis.speak(utter);
+    }
+}
+
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+function renderWrongNote() {
+    const listEl = document.getElementById('wrong-word-list');
+    if (userData.wrongWords.length === 0) {
+        listEl.innerHTML = "<p style='color:#888; text-align:center;'>틀린 단어가 없습니다! 완벽해요! 👏</p>";
+    } else {
+        listEl.innerHTML = userData.wrongWords.map((w, index) => 
+            `<div style="border-bottom: 1px dashed #ccc; padding: 6px 0; display: flex; align-items: center; justify-content: space-between;">
+                <div><span>${w.i || ""}</span> <b>${w.k}</b> <span style="color:#666; font-size:12px;">(${w.h})</span> : <span>${w.m}</span></div>
+                <button onpointerdown="removeWrongWord(${index})" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background:#ff4757; color:white;">삭제</button>
+            </div>`
+        ).join('');
+    }
+}
+
+function removeWrongWord(index) {
+    if (confirm("오답 노트에서 삭제하시겠습니까?")) {
+        userData.wrongWords.splice(index, 1);
+        saveData();
+        renderWrongNote(); 
+    }
+}
+
+function buyItem(type, price) {
+    if (userData.gold < price) {
+        showToast("❌ 골드가 부족합니다!");
+        return;
+    }
+    userData.gold -= price;
+    if (type === 'hint') userData.inventory.hint++;
+    if (type === 'skip') userData.inventory.skip++;
+    
+    saveData();
+    document.getElementById('shop-gold').innerText = userData.gold;
+    document.getElementById('lobby-gold').innerText = userData.gold;
+    updateUI();
+    showToast(`✅ 구매 완료! (${type === 'hint' ? '힌트' : '스킵권'})`);
+}
+
+function buySkin(skinType, price) {
+    if (userData.gold < price) {
+        showToast("❌ 골드가 부족합니다!");
+        return;
+    }
+    if (userData.currentSkin === skinType) {
+        showToast("이미 적용된 스킨입니다.");
+        return;
+    }
+    userData.gold -= price;
+    userData.currentSkin = skinType;
+    saveData();
+    applySkin();
+    
+    document.getElementById('shop-gold').innerText = userData.gold;
+    document.getElementById('lobby-gold').innerText = userData.gold;
+    showToast("✨ 스킨이 변경되었습니다!");
+}
+
+// 1. 스킨 및 UI 색상 동적 적용 함수
+function applySkin(skinId = userData.currentSkin || 'default') {
+    const skin = SKIN_DB[skinId];
+    if (!skin) return;
+    
+    userData.currentSkin = skinId;
+    saveData();
+    
+    // 전체 웹페이지 배경색 변경
+    document.body.style.background = skin.bg;
+    
+    // 상점 레이아웃 구조 변경 (스킨은 4열 격자, 캐릭터/아이템은 세로 리스트)
+    const shopList = document.getElementById('shop-list');
+    if (shopList) {
+        const currentTab = document.querySelector('.tab-btn.active');
+        const tabType = currentTab ? currentTab.getAttribute('onclick').match(/'([^']+)'/)[1] : 'item';
+        
+        if (tabType === 'skin') {
+            shopList.style.display = 'grid';
+            shopList.style.gridTemplateColumns = 'repeat(4, 1fr)';
+            shopList.style.gap = '6px';
+        } else {
+            shopList.style.display = 'flex';
+            shopList.style.flexDirection = 'column';
+            shopList.style.gap = '8px';
+        }
+    }
+}
+// 3. 힌트 및 스킨 적용 로직
+function useHintItem() {
+    if (userData.inventory.hint <= 0) return showToast("힌트가 부족합니다!");
+    userData.inventory.hint--;
+    updateUI();
+    
+    // 대상 단어 반짝임 효과
+    const target = document.querySelector('.target-slot'); // 예시 타겟
+    target.classList.add('shake-card');
+    setTimeout(() => target.classList.remove('shake-card'), 1000);
+}
+
+function useSkipItem() {
+    if (userData.inventory.skip <= 0) {
+        showToast("❌ 스킵권이 없습니다. 상점에서 구매하세요!");
+        return;
+    }
+    if(confirm('🎫 스킵권을 사용하여 이 스테이지를 통과하시겠습니까?')) {
+        userData.inventory.skip--;
+        userData.energy = Math.min(100, userData.energy + 10); 
+        currentCombo = 0;
+        userData.stage++;
+        
+        saveData();
+        updateUI();
+        showToast("🎫 스테이지 패스! 다음 스테이지로 이동합니다.");
+        
+        setTimeout(() => { initStage(); }, 1000);
+    }
+}
+
+
+function saveData() {
+    if (nick) {
+        localStorage.setItem('solitaire_' + nick, JSON.stringify(userData));
+    }
+}
+
+function initStage() {
+    if (document.getElementById('st-num')) document.getElementById('st-num').innerText = userData.stage;
+
+    const tArea = document.getElementById('target-area');
+    const tab = document.getElementById('tableau');
+    if (tArea) tArea.innerHTML = '';
+    if (tab) tab.innerHTML = '';
+
+    selectedCard = null;
+    isProcessingMove = false;
+    sessionWrongLog = {};
+    currentStageTotals = {};
+    currentStageCount = {};
+    currentStageWrongWordsList = [];
+
+    let cards = [];
+    let stageNum = userData.stage;
+    let currentLvl = Math.min(5, Math.floor((stageNum - 1) / 20) + 1);
+
+    let minTopics = (stageNum <= 20) ? 3 : 4;
+    let maxTopics = (stageNum <= 20) ? 5 : 6;
+    let targetTopicCount = Math.floor(Math.random() * (maxTopics - minTopics + 1)) + minTopics;
+
+    let levelPool = VOCAB_DB.filter(w => w.lvl === currentLvl);
+    if (levelPool.length === 0) levelPool = VOCAB_DB; 
+
+    let stageTopics = [];
+    let pickedWordKeys = new Set();
+    let topicWordsMap = {};
+
+    const conflictGroups = [
+        ["학용품", "수업시간"], ["수업시간", "등교준비"], ["학용품", "등교준비"],
+        ["체육시간", "스포츠"], ["과학", "생물학"], ["의성어", "의태어"]
+    ];
+
+    let availableCats = [...new Set(levelPool.map(w => w.cat))].sort(() => Math.random() - 0.5);
+
+    for (let cat of availableCats) {
+        if (stageTopics.length >= targetTopicCount) break;
+
+        let isBlocked = false;
+        for (let group of conflictGroups) {
+            if (group.includes(cat) && group.some(sibling => stageTopics.includes(sibling))) {
+                isBlocked = true; break;
+            }
+        }
+        if (isBlocked) continue;
+
+        let catWords = levelPool.filter(w => w.cat === cat && !pickedWordKeys.has(w.k));
+        if (catWords.length === 0) continue;
+
+        stageTopics.push(cat);
+        catWords.sort(() => Math.random() - 0.5);
+        let count = Math.min(5, catWords.length);
+        let selected = catWords.slice(0, count);
+
+        topicWordsMap[cat] = selected;
+        selected.forEach(w => pickedWordKeys.add(w.k));
+    }
+
+    stageTopics.forEach(cat => {
+        let finalCatWords = topicWordsMap[cat] || [];
+        if (finalCatWords.length === 0) finalCatWords = levelPool.filter(w => w.cat === cat).slice(0, 5);
+
+        let count = finalCatWords.length;
+        currentStageTotals[cat] = count;
+        currentStageCount[cat] = 0;
+
+        for (let i = 0; i < count; i++) cards.push(finalCatWords[i]);
+
+        if (tArea) {
+            const slot = document.createElement('div');
+            slot.className = 'target-slot';
+            slot.innerHTML = `<div class="slot-label">${cat}</div><div class="slot-count" id="count-${cat}">0 / ${count}</div>`;
+            slot.onpointerdown = () => handleMove(cat, slot);
+            tArea.appendChild(slot);
+        }
+    });
+
+    cards.sort(() => Math.random() - 0.5);
+    
+    cards.forEach((d, idx) => {
+        if (!tab) return;
+        const c = document.createElement('div');
+        c.className = 'card';
+        let safeH = d.h.replace("де", "で");
+        let txtHTML = `<div class="k-txt">${d.k}</div><div class="h-txt">${safeH}</div>`;
+        if(d.r) txtHTML += `<div class="r-txt">${d.r}</div>`;
+        c.innerHTML = txtHTML;
+        c.dataset.info = JSON.stringify(d);
+        c.style.top = (Math.floor(idx/5) * 28) + "px";
+        
+        const selectFn = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            if (isProcessingMove) return; 
+            if(selectedCard) selectedCard.classList.remove('selected');
+            selectedCard = c; c.classList.add('selected');
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(safeH);
+                utter.lang = 'ja-JP';
+                window.speechSynthesis.speak(utter);
+            }
+        };
+        c.onpointerdown = selectFn;
+        
+        const colId = idx % 5;
+        let col = document.getElementById(`col-${colId}`);
+        if(!col) { col = document.createElement('div'); col.className = 'column'; col.id = `col-${colId}`; tab.appendChild(col); }
+        col.appendChild(c);
+    });
+    
+    updateUI();
+    saveData();
+}
+
+function handleMove(cat, slot) {
+    if (!selectedCard || isProcessingMove) return;
+    
+    try {
+        const data = JSON.parse(selectedCard.dataset.info);
+        if (!data || !data.cat) return;
+
+        if (data.cat === cat) {
+            isProcessingMove = true; 
+            currentStageCount[cat]++;
+            if (document.getElementById(`count-${cat}`)) document.getElementById(`count-${cat}`).innerText = `${currentStageCount[cat]} / ${currentStageTotals[cat]}`;
+
+            currentCombo++; 
+            let baseScore = 10;
+            let comboBonus = (currentCombo > 0 && currentCombo % 10 === 0) ? currentCombo : 0;
+            let earnedScore = baseScore + comboBonus; 
+            userData.score += earnedScore;
+            userData.gold += earnedScore;
+
+            const comboEl = document.getElementById('live-combo');
+            if (comboEl) {
+                if (comboBonus > 0) comboEl.innerText = `🔥 ${currentCombo} COMBO 달성! 보너스 +${comboBonus}점!`;
+                else comboEl.innerText = `${currentCombo} COMBO! (+${baseScore}점)`;
+                comboEl.style.display = 'inline-flex';
+            }
+
+            const previousColumn = selectedCard.parentElement;
+            const movingCard = selectedCard; 
+            selectedCard = null; 
+
+            const cardRect = movingCard.getBoundingClientRect();
+            const slotRect = slot.getBoundingClientRect();
+            const diffX = slotRect.left - cardRect.left + (slotRect.width / 2) - (cardRect.width / 2);
+            const diffY = slotRect.top - cardRect.top + 10; 
+
+            movingCard.style.zIndex = "9999"; 
+            movingCard.style.transition = "transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.35s";
+            movingCard.style.transform = `translate(${diffX}px, ${diffY}px) scale(0.9)`;
+            movingCard.style.opacity = "0.8";
+            movingCard.style.pointerEvents = "none"; 
+
+            setTimeout(() => {
+                movingCard.removeAttribute('style'); 
+                movingCard.classList.remove('selected');
+                movingCard.onpointerdown = null; 
+                movingCard.style.zIndex = currentStageCount[cat]; 
+                
+                slot.appendChild(movingCard);
+                movingCard.innerHTML = `<div class="card-emoji">${data.i || ""}</div><div class="card-mean">${data.m}</div>`;
+
+                if (previousColumn && previousColumn.classList.contains('column')) realignColumn(previousColumn);
+                
+                isProcessingMove = false; 
+                updateUI();
+                saveData();
+                checkStageClear(); 
+            }, 350);
+
+        } else {
+            currentCombo = 0;
+            const comboEl = document.getElementById('live-combo');
+            if (comboEl) comboEl.style.display = 'none';
+
+            if (selectedCard) {
+                const tempCard = selectedCard;
+                tempCard.classList.add('shake-card');
+                isProcessingMove = true; 
+                setTimeout(() => { if (tempCard) { tempCard.classList.remove('shake-card'); tempCard.classList.remove('selected'); } isProcessingMove = false; }, 400);
+            }
+            handleWrongAnswer(); 
+            selectedCard = null;
+        }
+
+    } catch (error) { console.error(error); isProcessingMove = false; }
+}
+
+function realignColumn(col) {
+    const cards = col.querySelectorAll('.card');
+    cards.forEach((c, idx) => { c.style.top = (idx * 28) + "px"; });
+}
+
+function handleWrongAnswer() {
+    userData.energy = Math.max(0, userData.energy - 10);
+    
+    if (selectedCard && selectedCard.dataset.info) {
+        try {
+            const data = JSON.parse(selectedCard.dataset.info);
+            if(data.h) data.h = data.h.replace("де", "で");
+            
+            if (!sessionWrongLog[data.k]) sessionWrongLog[data.k] = 0;
+            sessionWrongLog[data.k]++;
+            
+            if(!currentStageWrongWordsList.some(w => w.k === data.k)) currentStageWrongWordsList.push(data);
+            if (!userData.wrongWords.some(w => w.k === data.k)) userData.wrongWords.push(data);
+        } catch(e) {}
+    }
+    
+    updateUI();
+    saveData();
+    showToast("틀렸습니다! 😢 에너지 -10");
+    
+    if (userData.energy <= 0) {
+        if (userData.score > (userData.highScore || 0)) userData.highScore = userData.score;
+        saveData();
+        
+        if (document.getElementById('final-stage-val')) document.getElementById('final-stage-val').innerText = userData.stage + " 스테이지";
+        if (document.getElementById('final-score-val')) document.getElementById('final-score-val').innerText = `${userData.score} 점 (최고 기록: ${userData.highScore} 점)`;
+        
+        const listEl = document.getElementById('gameover-wrong-list');
+        if(listEl) {
+            listEl.innerHTML = currentStageWrongWordsList.map(w => `<div><b>${w.k}</b>: ${w.m}</div>`).join('');
+        }
+
+        document.getElementById('gameover-overlay').style.display = 'flex';
+    }
+}
+
+function checkStageClear() {
+    let isClear = true;
+    let totalCardsInStage = 0;
+    
+    for (let cat in currentStageTotals) {
+        if (currentStageCount[cat] < currentStageTotals[cat]) { isClear = false; break; }
+        totalCardsInStage += currentStageTotals[cat];
+    }
+    
+    if (isClear) {
+        let totalWrongsInStage = 0;
+        for (let key in sessionWrongLog) totalWrongsInStage += (sessionWrongLog[key] || 0);
+        
+        let totalAttempts = totalCardsInStage + totalWrongsInStage;
+        let accuracy = totalAttempts > 0 ? (totalCardsInStage / totalAttempts) * 100 : 100;
+        
+        let stars = ""; let goldReward = 0; let rankMessage = "";
+        if (accuracy >= 90) { stars = "🩷🩷🩷"; goldReward = 100; rankMessage = "완벽해요! 최고입니다! 😎"; }
+        else if (accuracy >= 75) { stars = "🩷🩷🩶"; goldReward = 70; rankMessage = "훌륭한 실력이에요! 👍"; }
+        else if (accuracy >= 50) { stars = "🩷🩶🩶"; goldReward = 50; rankMessage = "통과했습니다! 한 걸음 더! 🏃"; }
+        else { stars = "🩶🩶🩶"; goldReward = 20; rankMessage = "다시 연습하세요! ✍️"; }
+        
+        let stageBonus = 500 + (userData.energy * 5);
+        userData.score += stageBonus;
+        userData.energy = Math.min(100, userData.energy + 20);
+        userData.gold += goldReward; 
+        
+        let title = "일본어 초보 🔰";
+        if (userData.stage >= 20) title = "일본어 갓(GOD) 👑";
+        else if (userData.stage >= 10) title = "일본어 마스터 ⚡";
+        else if (userData.stage >= 5) title = "일본어 능력자 📖";
+        
+        currentCombo = 0;
+        
+        if (document.getElementById('clear-title')) document.getElementById('clear-title').innerText = `🎉 STAGE ${userData.stage} CLEAR!`;
+        if (document.getElementById('clear-stars')) document.getElementById('clear-stars').innerText = stars;
+        if (document.getElementById('clear-accuracy')) document.getElementById('clear-accuracy').innerText = `🎯 정답률: ${Math.round(accuracy)}%`;
+        if (document.getElementById('clear-msg')) document.getElementById('clear-msg').innerText = rankMessage;
+        if (document.getElementById('clear-score-bonus')) document.getElementById('clear-score-bonus').innerText = `💰 스테이지 점수: +${stageBonus}점`;
+        if (document.getElementById('clear-gold-bonus')) document.getElementById('clear-gold-bonus').innerText = `🪙 획득 골드: +${goldReward} 골드`;
+        if (document.getElementById('clear-current-title')) document.getElementById('clear-current-title').innerText = `현재 칭호: [${title}]`;
+        
+        const wrongContainer = document.getElementById('stage-wrong-container');
+        const wrongListEl = document.getElementById('stage-wrong-list');
+        
+        if (wrongContainer && wrongListEl) {
+            if (currentStageWrongWordsList.length > 0) {
+                wrongContainer.style.display = 'block';
+                wrongListEl.innerHTML = currentStageWrongWordsList.map(w => 
+                    `<div style="padding: 3px 0; border-bottom: 1px dotted #eee;"><span>${w.i || ""}</span> <b>${w.k}</b> (${w.h}) → <span style="color:#2ecc71; font-weight:bold;">${w.m}</span></div>`
+                ).join('');
+            } else {
+                wrongContainer.style.display = 'none'; wrongListEl.innerHTML = '';
+            }
+        }
+
+        document.getElementById('clear-overlay').style.display = 'flex';
+        saveData(); updateUI();
+    }
+}
+
+function proceedToNextStage() {
+    document.getElementById('clear-overlay').style.display = 'none';
+    userData.stage++;
+    saveData(); updateUI(); initStage();
+}
+
+function updateUI() {
+    if (document.getElementById('score')) document.getElementById('score').innerText = userData.score;
+    if (document.getElementById('high-score')) document.getElementById('high-score').innerText = userData.highScore || 0; 
+    if (document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = userData.energy + "%";
+    if (document.getElementById('st-num')) document.getElementById('st-num').innerText = userData.stage;
+    if (document.getElementById('user-gold')) document.getElementById('user-gold').innerText = userData.gold;
+    
+    if (document.getElementById('ui-hint-cnt')) document.getElementById('ui-hint-cnt').innerText = userData.inventory.hint;
+    if (document.getElementById('ui-skip-cnt')) document.getElementById('ui-skip-cnt').innerText = userData.inventory.skip;
+}
+
+function restartGame() {
+    userData.energy = 100; userData.stage = 1; userData.score = 0; currentCombo = 0;
+    saveData(); updateUI();
+    document.getElementById('gameover-overlay').style.display = 'none';
+    initStage();
+}
+
+function filterVocabList(query) {
+    const q = query.toLowerCase();
+    const items = document.querySelectorAll('.vocab-item');
+    
+    items.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        item.style.display = text.includes(q) ? 'flex' : 'none';
+    });
+
+    if (q.length > 0) {
+        document.querySelectorAll('[id^="cat-"]').forEach(el => el.style.display = 'block');
+        document.querySelectorAll('.toggle-icon').forEach(icon => icon.style.transform = 'rotate(180deg)');
+    } else {
+        document.querySelectorAll('[id^="cat-"]').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.toggle-icon').forEach(icon => icon.style.transform = 'rotate(0deg)');
+    }
+}
+
+// ==========================================
+// 🛒 상점, 스킨, 캐릭터 통합 관리 마스터 코드
+// ==========================================
+
+// 1. 스킨 및 UI 색상 동적 적용 함수
+function applySkin(skinId = userData.currentSkin || 'default') {
+    const skin = SKIN_DB[skinId];
+    if (!skin) return;
+    
+    userData.currentSkin = skinId;
+    saveData();
+    
+    // 전체 웹페이지 배경색 변경
+    document.body.style.background = skin.bg;
+    
+    // 상점 레이아웃 구조 변경 (스킨은 4열 격자, 캐릭터/아이템은 세로 리스트)
+    const shopList = document.getElementById('shop-list');
+    if (shopList) {
+        const currentTab = document.querySelector('.tab-btn.active');
+        const tabType = currentTab ? currentTab.getAttribute('onclick').match(/'([^']+)'/)[1] : 'item';
+        
+        if (tabType === 'skin') {
+            shopList.style.display = 'grid';
+            shopList.style.gridTemplateColumns = 'repeat(4, 1fr)';
+            shopList.style.gap = '6px';
+        } else {
+            shopList.style.display = 'flex';
+            shopList.style.flexDirection = 'column';
+            shopList.style.gap = '8px';
+        }
+    }
+}
+
+// 2. 상점 화면 렌더링 (스킨 버튼 디자인 리뉴얼 버전)
+function renderShop(type = 'item', btnElement = null) {
+    const shopList = document.getElementById('shop-list');
+    const shopContainer = document.querySelector('.shop-container');
+    if (!shopList) return;
+
+    // 상점 내부 스크롤 및 화면 늘어남 방지 구조 고정
+    if (shopContainer) {
+        shopContainer.style.maxHeight = '80vh';
+        shopContainer.style.display = 'flex';
+        shopContainer.style.flexDirection = 'column';
+    }
+    
+    shopList.style.maxHeight = 'calc(80vh - 120px)';
+    shopList.style.overflowY = 'auto';
+    shopList.style.webkitOverflowScrolling = 'touch';
+    shopList.style.padding = '8px 4px';
+
+    // 탭 버튼 활성화 교체
+    if (btnElement) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+    }
+
+    // 예외 처리 안정화
+    if (!userData.ownedChars) userData.ownedChars = ['default'];
+    if (!userData.ownedSkins) userData.ownedSkins = ['default'];
+    if (!userData.inventory) userData.inventory = { hint: 0, skip: 0 };
+
+    let html = '';
+
+    // ─── [1] 아이템 탭 (가로 리스트) ───
+    if (type === 'item') {
+        shopList.style.display = 'flex';
+        shopList.style.flexDirection = 'column';
+        shopList.style.gap = '8px';
+
+        html += `
+        <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; width:100%; box-sizing:border-box; justify-content:space-between; text-align:left;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:2rem; line-height:1;">💡</span>
+                <div>
+                    <div style="font-weight:bold; font-size:1rem; color:#222;">힌트 (보유: ${userData.inventory.hint}개)</div>
+                    <div style="font-size:0.75rem; color:#666;">단어의 위치를 은은하게 표시</div>
+                </div>
+            </div>
+            <button onclick="buyItem('hint', 100)" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; flex-shrink:0;">100G</button>
+        </div>
+        <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; width:100%; box-sizing:border-box; justify-content:space-between; text-align:left;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:2rem; line-height:1;">🎫</span>
+                <div>
+                    <div style="font-weight:bold; font-size:1rem; color:#222;">스킵 (보유: ${userData.inventory.skip}개)</div>
+                    <div style="font-size:0.75rem; color:#666;">현재 스테이지를 즉시 패스</div>
+                </div>
+            </div>
+            <button onclick="buyItem('skip', 500)" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; flex-shrink:0;">500G</button>
+        </div>`;
+    } 
+    // ─── [2] 캐릭터 탭 (가로 리스트) ───
+    else if (type === 'char') {
+        shopList.style.display = 'flex';
+        shopList.style.flexDirection = 'column';
+        shopList.style.gap = '8px';
+
+        for (let id in CHARACTER_DB) {
+            let char = CHARACTER_DB[id];
+            let isOwned = userData.ownedChars.includes(id);
+            let isEquipped = userData.char === id;
+
+            html += `
+            <div class="shop-card" style="display:flex; flex-direction:row; align-items:center; padding:10px 12px; border-radius:10px; width:100%; box-sizing:border-box; justify-content:space-between; text-align:left;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:2.2rem; width:40px; text-align:center; line-height:1; flex-shrink:0;">${char.emoji}</span>
+                    <span style="font-weight:bold; font-size:1rem; color:#222;">${char.name}</span>
+                </div>
+                <div style="flex-shrink:0;">
+                    ${isOwned ? 
+                        `<button onclick="equipChar('${id}')" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; background:${isEquipped ? '#95a5a6' : 'var(--green)'}; color:white; border:none; cursor:pointer;">${isEquipped ? '장착중' : '장착'}</button>` : 
+                        `<button onclick="buyChar('${id}')" style="width:80px; padding:8px 0; margin:0; font-size:0.85rem; border-radius:8px; background:var(--gold); color:white; border:none; cursor:pointer;">${char.price}G</button>`}
+                </div>
+            </div>`;
+        }
+    } 
+    // ─── [3] 스킨 탭 (✨ 요청하신 이미지 스타일 리뉴얼 격자) ───
+    else if (type === 'skin') {
+        shopList.style.display = 'grid';
+        shopList.style.gridTemplateColumns = 'repeat(4, 1fr)';
+        shopList.style.gap = '8px';
+
+        for (let id in SKIN_DB) {
+            let s = SKIN_DB[id];
+            let isOwned = userData.ownedSkins ? userData.ownedSkins.includes(id) : (id === 'default');
+            let isEquipped = userData.currentSkin === id;
+
+            // 버튼 내부 디자인 분기 처리
+            let buttonHTML = '';
+            if (isEquipped) {
+                // 장착중 상태 버튼 (차분한 그레이 + 체크마크)
+                buttonHTML = `
+                    <button onclick="applySkin('${id}'); renderShop('skin');" style="width:100%; padding:5px 0; margin:0; border-radius:20px; font-size:0.75rem; font-weight:bold; background:#7f8c8d; color:white; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:2px;">
+                        적용중 <span style="font-size:0.65rem;">✓</span>
+                    </button>`;
+            } else if (isOwned) {
+                // 보유중 상태 버튼 (화사한 초록색 패널)
+                buttonHTML = `
+                    <button onclick="applySkin('${id}'); renderShop('skin');" style="width:100%; padding:5px 0; margin:0; border-radius:20px; font-size:0.75rem; font-weight:bold; background:#2ecc71; color:white; border:none; cursor:pointer; box-shadow:0 2px 4px rgba(46,204,113,0.3);">
+                        적용
+                    </button>`;
+            } else {
+                // 미보유 상점 판매 상태 버튼 (🪙 코인 아이콘 + 가격 구조화)
+                buttonHTML = `
+                    <button onclick="buySkin('${id}')" style="width:100%; padding:5px 0; margin:0; border-radius:20px; font-size:0.72rem; font-weight:bold; background:#f1c40f; color:#333; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:2px; box-shadow:0 2px 4px rgba(241,196,15,0.3);">
+                        <span style="font-size:0.75rem;">🪙</span>${s.price}
+                    </button>`;
+            }
+
+            html += `
+            <div class="shop-card" style="background:#ffffff; border:1px solid #e0e0e0; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:10px 6px; border-radius:12px; box-sizing:border-box; min-height:115px; box-shadow:0 3px 6px rgba(0,0,0,0.03);">
+                <div style="width:38px; height:38px; border-radius:50%; background:${s.card}; border:3px solid ${s.bg}; box-shadow:inset 0 0 4px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.1); flex-shrink:0; margin-bottom:4px;"></div>
+                
+                <div style="font-weight:bold; font-size:0.75rem; color:#444; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; margin-bottom:8px;">${s.name}</div>
+                
+                <div style="width:100%; margin-top:auto;">
+                    ${buttonHTML}
+                </div>
+            </div>`;
+        }
+    }
+
+    shopList.innerHTML = html;
+}
+
+
+// 3. 캐릭터 구매 및 장착 로직
+function buyChar(id) {
+    const char = CHARACTER_DB[id];
+    if (userData.gold >= char.price) {
+        userData.gold -= char.price;
+        userData.ownedChars.push(id);
+        saveData();
+        updateUI();
+        document.getElementById('shop-gold').innerText = userData.gold;
+        renderShop('char'); 
+        showToast(char.name + " 구매 완료! 🎉");
+    } else {
+        showToast("❌ 골드가 부족합니다!");
+    }
+}
+
+function equipChar(id) {
+    userData.char = id;
+    saveData();
+    updateGameCharacter();
+    renderShop('char');
+    showToast("캐릭터 장착 완료! 😉");
+}
+
+
+function updateGameCharacter() {
+    const charSpan = document.getElementById('game-char-emoji');
+    if (charSpan) {
+        const charId = userData.char || 'default';
+        const charData = CHARACTER_DB[charId];
+        if (charData) charSpan.innerText = charData.emoji;
+    }
+}
+
+// 4. 스킨 구매 로직
+function buySkin(id) {
+    const skin = SKIN_DB[id];
+    if (userData.gold >= skin.price) {
+        userData.gold -= skin.price;
+        if (!userData.ownedSkins) userData.ownedSkins = ['default'];
+        userData.ownedSkins.push(id);
+        saveData();
+        updateUI();
+        document.getElementById('shop-gold').innerText = userData.gold;
+        renderShop('skin');
+        showToast(skin.name + " 스킨 구매 완료! 🎨");
+    } else {
+        showToast("❌ 골드가 부족합니다!");
+    }
+}
+
+// 5. 아이템 구매 로직
+function buyItem(type, price) {
+    if (userData.gold < price) {
+        showToast("❌ 골드가 부족합니다!");
+        return;
+    }
+    userData.gold -= price;
+    if (!userData.inventory) userData.inventory = { hint: 0, skip: 0 };
+    
+    userData.inventory[type]++;
+    saveData();
+    updateUI();
+    document.getElementById('shop-gold').innerText = userData.gold;
+    renderShop('item');
+    showToast((type === 'hint' ? "💡 힌트" : "🎫 스킵") + " 아이템을 구매했습니다.");
+}
+
+
+// 페이지 로드 시 캐릭터 이모지 최초 초기화
+window.addEventListener('load', () => {
+    updateGameCharacter();
+});
+
+</script>
+<script>
+  // PWA Service Worker 등록
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.log('SW error:', err));
+    });
+  }
+</script>
+</body>
+</html>
