@@ -2523,29 +2523,54 @@ function buySkin(skinType, price) {
 }
 
 // 1. 스킨 및 UI 색상 동적 적용 함수
-function applySkin(skinId = userData.currentSkin || 'default') {
+function applySkin(
+    skinId = userData.currentSkin
+) {
+
+    if(!skinId){
+        skinId = 'default';
+    }
+
     const skin = SKIN_DB[skinId];
+
     if (!skin) return;
-    
+
     userData.currentSkin = skinId;
+
     saveData();
-    
-    // 전체 웹페이지 배경색 변경
+
     document.body.style.background = skin.bg;
-    
-    // 상점 레이아웃 구조 변경 (스킨은 4열 격자, 캐릭터/아이템은 세로 리스트)
-    const shopList = document.getElementById('shop-list');
+
+    const shopList =
+    document.getElementById('shop-list');
+
     if (shopList) {
-        const currentTab = document.querySelector('.tab-btn.active');
-        const tabType = currentTab ? currentTab.getAttribute('onclick').match(/'([^']+)'/)[1] : 'item';
-        
+
+        const currentTab =
+        document.querySelector('.tab-btn.active');
+
+        const tabType =
+        currentTab
+        ? currentTab
+            .getAttribute('onclick')
+            .match(/'([^']+)'/)[1]
+        : 'item';
+
         if (tabType === 'skin') {
+
             shopList.style.display = 'grid';
-            shopList.style.gridTemplateColumns = 'repeat(4, 1fr)';
+
+            shopList.style.gridTemplateColumns =
+            'repeat(4, 1fr)';
+
             shopList.style.gap = '6px';
+
         } else {
+
             shopList.style.display = 'flex';
+
             shopList.style.flexDirection = 'column';
+
             shopList.style.gap = '8px';
         }
     }
