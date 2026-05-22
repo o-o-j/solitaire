@@ -253,7 +253,18 @@
         scale(1);
     }
 }
-
+    .card.dragging {
+            opacity: 0.6;           /* 드래그 중 살짝 투명하게 */
+            cursor: grabbing;       /* 마우스 커서 모양 변경 */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); /* 살짝 떠 있는 느낌 */
+            transform: scale(1.05); /* 드래그할 때 살짝 커지게 */
+            transition: transform 0.1s;
+        }
+        
+        /* 추가로, 카드들이 스크롤이나 터치 드래그 시 방해받지 않도록 이것도 넣어주세요 */
+        .card {
+            touch-action: none;
+        }
    
    </style>
 </head>
@@ -2727,7 +2738,7 @@ function initStage() {
             e.preventDefault(); e.stopPropagation();
             if (isProcessingMove) return; 
             if(selectedCard) selectedCard.classList.remove('selected');
-            selectedCard = c; c.classList.add('selected');
+            selectedCard = c; c.classList.add('selected'); // 여기서 카드를 '선택' 상태로 만듭니다.
             
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -2736,7 +2747,39 @@ function initStage() {
                 window.speechSynthesis.speak(utter);
             }
         };
-        c.onpointerdown = selectFn;
+        // 기존 selectFn 삭제 또는 주석 처리 후 아래 내용 추가
+        c.onpointerdown = (e) => {
+            // 1. 드래그 시작 설정
+            c.classList.add('dragging'); // 스타일을 위해 클래스 추가
+            c.style.position = 'fixed';
+            c.style.zIndex = '1000';
+            
+            // 카드 위치 보정 (중심으로 이동)
+            const rect = c.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+
+            const onPointerMove = (moveEvent) => {
+                // 2. 부드러운 위치 이동
+                c.style.left = (moveEvent.clientX - offsetX) + 'px';
+                c.style.top = (moveEvent.clientY - offsetY) + 'px';
+            };
+
+            const onPointerUp = (upEvent) => {
+                // 3. 드래그 종료 및 처리
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                c.classList.remove('dragging');
+                c.style.position = ''; // 원래 위치로 복귀하거나 로직 적용
+                
+                // 여기에 카드를 놓은 곳이 target-slot인지 판별하는 로직(충돌 체크) 추가
+                checkDrop(upEvent.clientX, upEvent.clientY, c);
+            };
+
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+        };
+
         
         const colId = idx % 5;
         let col = document.getElementById(`col-${colId}`);
@@ -2747,6 +2790,30 @@ function initStage() {
     updateUI();
     saveData();
 }
+
+function checkDrop(clientX, clientY, cardElement) {
+    // 1. 현재 마우스 위치에 있는 모든 요소를 가져옴
+    const elementsUnderPointer = document.elementsFromPoint(clientX, clientY);
+    
+    // 2. 그 요소들 중 'target-slot' 클래스를 가진 녀석을 찾음
+    const targetSlot = elementsUnderPointer.find(el => el.classList.contains('target-slot'));
+    
+    if (targetSlot) {
+        // 3. 찾았다면 해당 슬롯의 주제를 알아냄 (예: slot-label 안의 텍스트)
+        const label = targetSlot.querySelector('.slot-label').innerText;
+        const cardData = JSON.parse(cardElement.dataset.info);
+        
+        // 4. 기존 로직인 handleMove를 호출하여 정답 처리
+        // (기존 handleMove가 cat과 slot을 인자로 받도록 되어 있다면)
+        handleMove(label, targetSlot, cardElement);
+    } else {
+        // 슬롯 위가 아니라면 카드를 다시 원래 상태로 돌려놓는 처리가 필요할 수 있습니다.
+        cardElement.style.position = '';
+        cardElement.style.left = '';
+        cardElement.style.top = '';
+    }
+}
+
 
 function handleMove(cat, slot) {
     if (!selectedCard || isProcessingMove) return;
@@ -2796,29 +2863,12 @@ function handleMove(cat, slot) {
             const slotRect = slot.getBoundingClientRect();
             const diffX = slotRect.left - cardRect.left + (slotRect.width / 2) - (cardRect.width / 2);
             const diffY = slotRect.top - cardRect.top + 10; 
-            
-            function handleStart(e) {
-            movingCard.style.zIndex = "9999";
-            movingCard.style.transition = "none"; // 👈 여기
-            movingCard.style.pointerEvents = "none";
+
+            movingCard.style.zIndex = "9999"; 
+            movingCard.style.transition = "transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.35s";
+            movingCard.style.transform = `translate(${diffX}px, ${diffY}px) scale(0.9)`;
             movingCard.style.opacity = "0.8";
-            }
-
-            function handleMove(e) {
-            movingCard.style.transform =
-            `translate(${diffX}px, ${diffY}px) scale(0.96)`;
-            }
-
-            function handleEnd(e) {
-            movingCard.style.transition =
-                    "transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s";
-
-            movingCard.style.opacity = "1";
-
-            movingCard.style.transform =
-                    `translate(${finalX}px, ${finalY}px) scale(1)`;
-            }
-
+            movingCard.style.pointerEvents = "none"; 
 
             setTimeout(() => {
                 movingCard.removeAttribute('style'); 
